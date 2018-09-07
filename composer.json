@@ -1,0 +1,19 @@
+{
+  "name": "genesis/behat-fail-aid",
+  "description": "Get more out of your test suite by getting it to work with you when tests fail. Works with Goutte and MinkExtension (Selenium2Driver)",
+  "authors": [
+    {
+      "name": "Abdul Wahhab Qureshi"
+    }
+  ],
+  "require": {
+    "behat/behat": "~3.0@stable",
+    "behat/mink": "*@stable",
+    "behat/mink-extension": "~2.0@stable"
+  },
+  "autoload": {
+    "psr-4": {
+      "FailAid\\": "bootstrap/",
+    }
+  }
+}
