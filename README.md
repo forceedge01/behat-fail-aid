@@ -19,8 +19,44 @@ default:
   suites:
     default:
       contexts:
-        - FailureAid/Context/FailureContext:
-            - screenshotDirectory: /temp/failures/behat/screenshots/
+        - FailAid\Context\FailureContext
 ```
 
-The screenshot directory specification is optional and you may omit it. The default system temp directory will be used in this case.
+Have a look at the options you can provide to the context. Any of the options can be used in conjunction.
+
+screenshotDirectory option:
+----------------------------
+
+```gherkin
+#behat.yml
+...
+- FailAid\Context\FailureContext:
+    screenshotDirectory: /temp/failures/behat/screenshots/
+```
+
+Override default screenshot path.
+
+screenshotMode option:
+------------------------
+
+```gherkin
+#behat.yml
+...
+- FailAid\Context\FailureContext:
+    screenshotMode: default
+```
+
+default: Selenium2 enabled drivers will produce a png, anything else will produce html screenshots.
+html: All drivers will produce html screenshots, useful for interrogating runtime code.
+
+siteFilters option:
+--------------------
+
+```gherkin
+#behat.yml
+...
+- FailAid\Context\FailureContext:
+    siteFilters:
+      '/images/': 'http://dev.environment/images'
+      '/js/': 'http://dev.environment/js/'
+```

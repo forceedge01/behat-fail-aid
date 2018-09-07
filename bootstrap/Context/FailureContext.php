@@ -2,20 +2,25 @@
 
 namespace FailAid\Context;
 
+use Behat\Behat\Context\Context;
 use Behat\Behat\Hook\Scope\AfterStepScope;
 use Behat\MinkExtension\Context\MinkAwareContext;
+use Behat\Mink\Driver\Selenium2Driver;
 use Behat\Mink\Exception\DriverException;
 use Behat\Mink\Mink;
 use Behat\Testwork\Tester\Result\TestResult;
 use Exception;
-use QuickPack\Base\Interfaces\CommonContextInterface;
 use ReflectionObject;
 
 /**
  * Defines application features from the specific context.
  */
-final class FailureContext implements MinkAwareContext, CommonContextInterface
+class FailureContext implements MinkAwareContext
 {
+    const SCREENSHOT_MODE_DEFAULT = 'default';
+
+    const SCREENSHOT_MODE_HTML = 'html';
+
     /**
      * @var Mink
      */
@@ -32,6 +37,21 @@ final class FailureContext implements MinkAwareContext, CommonContextInterface
     private $exceptionDetailsProvider;
 
     /**
+     * @var array
+     *
+     * @example [
+     *     '/images/' => 'http://dev.environment/images/',
+     *     '/js/' => 'http://dev.environment/js/'
+     * ]
+     */
+    private $siteFilters = [];
+
+    /**
+     * @var string
+     */
+    private $screenshotMode;
+
+    /**
      * @var string
      */
     private static $exceptionHash;
@@ -43,9 +63,15 @@ final class FailureContext implements MinkAwareContext, CommonContextInterface
      * You can also pass arbitrary arguments to the
      * context constructor through behat.yml.
      */
-    public function __construct($screenshotDirectory = null)
-    {
+    public function __construct(
+        $screenshotDirectory = null,
+        $screenshotMode = self::SCREENSHOT_MODE_DEFAULT,
+        $siteFilters = []
+    ) {
         date_default_timezone_set('Europe/London');
+
+        $this->siteFilters = $siteFilters;
+        $this->screenshotMode = $screenshotMode;
 
         if ($screenshotDirectory) {
             $this->screenshotFileName = $screenshotDirectory . DIRECTORY_SEPARATOR . date('Ymd-');
@@ -197,7 +223,7 @@ final class FailureContext implements MinkAwareContext, CommonContextInterface
         $content = null;
         $filename .= microtime(true);
         // If not selenium driver, extract the html and put in file.
-        if (! ($driver instanceof Selenium2Driver)) {
+        if ($this->screenshotMode === self::SCREENSHOT_MODE_HTML || ! ($driver instanceof Selenium2Driver)) {
             $filename .= '.html';
             $content = $this->applySiteSpecificFilters($page->getHtml());
         } else {
@@ -238,7 +264,7 @@ final class FailureContext implements MinkAwareContext, CommonContextInterface
      */
     protected function getSiteSpecificFilters()
     {
-        return [];
+        return $this->siteFilters;
     }
 
     /**
