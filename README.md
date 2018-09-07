@@ -60,3 +60,5 @@ siteFilters option:
       '/images/': 'http://dev.environment/images'
       '/js/': 'http://dev.environment/js/'
 ```
+
+Applied on the content of a html screenshot. Useful when working with relative urls for assets.
