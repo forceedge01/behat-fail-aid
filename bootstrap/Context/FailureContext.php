@@ -74,7 +74,7 @@ class FailureContext implements MinkAwareContext
         $this->screenshotMode = $screenshotMode;
 
         if ($screenshotDirectory) {
-            $this->screenshotFileName = $screenshotDirectory . DIRECTORY_SEPARATOR . date('Ymd-');
+            $this->screenshotDir = $screenshotDirectory . DIRECTORY_SEPARATOR . date('Ymd-');
         } else {
             $this->screenshotDir = tempnam(sys_get_temp_dir(), date('Ymd-'));
         }
