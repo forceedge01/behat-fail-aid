@@ -57,7 +57,7 @@ siteFilters option:
 ...
 - FailAid\Context\FailureContext:
     siteFilters:
-      '/images/': 'http://dev.environment/images'
+      '/images/': 'http://dev.environment/images/'
       '/js/': 'http://dev.environment/js/'
 ```
 

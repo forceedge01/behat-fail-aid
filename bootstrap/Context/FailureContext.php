@@ -7,6 +7,7 @@ use Behat\Behat\Hook\Scope\AfterStepScope;
 use Behat\MinkExtension\Context\MinkAwareContext;
 use Behat\Mink\Driver\Selenium2Driver;
 use Behat\Mink\Element\DocumentElement;
+use Behat\Mink\Element\ElementInterface;
 use Behat\Mink\Exception\DriverException;
 use Behat\Mink\Mink;
 use Behat\Testwork\Tester\Result\TestResult;
@@ -53,6 +54,11 @@ class FailureContext implements MinkAwareContext
     private $screenshotMode;
 
     /**
+     * @var string
+     */
+    private $screenshotDir;
+
+    /**
      * @var array
      */
     private $debugBarSelectors = [];
@@ -72,8 +78,8 @@ class FailureContext implements MinkAwareContext
     public function __construct(
         $screenshotDirectory = null,
         $screenshotMode = self::SCREENSHOT_MODE_DEFAULT,
-        $siteFilters = [],
-        $debugBarSelectors = []
+        array $siteFilters = [],
+        array $debugBarSelectors = []
     ) {
         date_default_timezone_set('Europe/London');
 
@@ -198,7 +204,7 @@ class FailureContext implements MinkAwareContext
      *
      * @return string
      */
-    public function takeScreenshot($filename, $page, $driver)
+    public function takeScreenshot($filename, ElementInterface $page, $driver)
     {
         if (! $page->getHtml()) {
             throw new Exception('Unable to take screenshot, page content not found.');
@@ -229,9 +235,9 @@ class FailureContext implements MinkAwareContext
      */
     public static function provideDiff($expected, $actual, $message = null)
     {
-        return 'Mismatch: (expected +, actual -)' . PHP_EOL . PHP_EOL .
-            '+ ' . $expected . PHP_EOL .
-            '- ' . $actual . PHP_EOL . PHP_EOL .
+        return 'Mismatch: (- expected, + actual)' . PHP_EOL . PHP_EOL .
+            '- ' . $expected . PHP_EOL .
+            '+ ' . $actual . PHP_EOL . PHP_EOL .
             'Info: ' . $message;
     }
 
