@@ -87,3 +87,34 @@ Advanced integration:
 ----------------------
 
 Sometimes your logic will be more complicated and passing in options may not work for you. In those cases, it is advisable to have a look at the FailureContext of what it allows you to override. You can extend the FailureContext with your own context class, and override parts that you deem necessary. You will have to register your own class with the behat.yml contexts section.
+
+To register with all suites without separate configuration, or just doing it in code:
+
+```php
+# FeatureContext.php
+<?php
+
+use Behat\Testwork\Hook\Scope\BeforeSuiteScope;
+use FailAid\Context\FailureContext;
+
+class FeatureContext
+{
+    /**
+     * @BeforeSuite
+     */
+    public static function loadFailureContext(BeforeSuiteScope $scope)
+    {
+        $params = [
+            'screenshotDirectory' => null,
+            'screenshotMode' => FailureContext::SCREENSHOT_MODE_DEFAULT,
+            'siteFilters' => []
+        ];
+
+        $scope->getEnvironment()->registerContextClass(
+            FailureContext::class,
+            $params
+        );
+    }
+}
+
+```
