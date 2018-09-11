@@ -1,8 +1,11 @@
+Behat Fail Aid [ ![Codeship Status for forceedge01/behat-fail-aid](https://app.codeship.com/projects/0a2814f0-984a-0136-1935-7202d5d80573/status?branch=master)](https://app.codeship.com/projects/305220)
+==============
+
 Introduction
 -------------
 
 Time and time again we've all seen how difficult and stressful it can become to fix behat tests. This package is their to help gather
-all possible information around failures and print them as you see a failure taking out the need to do basic investigations.
+all possible information around failures and print them as you see a failure taking out the need to do basic investigations with minimal setup.
 
 Installation:
 -------------
@@ -22,7 +25,7 @@ default:
         - FailAid\Context\FailureContext
 ```
 
-Have a look at the options you can provide to the context. Any of the options can be used in conjunction.
+This is the basic setup and will give you a lot of information on failures. For more options read through the rest of the README. Any of the options below can be used in conjunction with each other.
 
 screenshotDirectory option:
 ----------------------------
@@ -34,7 +37,7 @@ screenshotDirectory option:
     screenshotDirectory: /temp/failures/behat/screenshots/
 ```
 
-Override default screenshot path.
+Override default screenshot path. Default folder is provided by `sys_get_temp_dir()` function.
 
 screenshotMode option:
 ------------------------
@@ -57,7 +60,7 @@ siteFilters option:
 ...
 - FailAid\Context\FailureContext:
     siteFilters:
-      '/images/': 'http://dev.environment/images'
+      '/images/': 'http://dev.environment/images/'
       '/js/': 'http://dev.environment/js/'
 ```
 
