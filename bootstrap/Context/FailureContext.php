@@ -6,6 +6,7 @@ use Behat\Behat\Context\Context;
 use Behat\Behat\Hook\Scope\AfterStepScope;
 use Behat\MinkExtension\Context\MinkAwareContext;
 use Behat\Mink\Driver\Selenium2Driver;
+use Behat\Mink\Element\DocumentElement;
 use Behat\Mink\Exception\DriverException;
 use Behat\Mink\Mink;
 use Behat\Testwork\Tester\Result\TestResult;
@@ -52,6 +53,11 @@ class FailureContext implements MinkAwareContext
     private $screenshotMode;
 
     /**
+     * @var array
+     */
+    private $debugBarSelectors = [];
+
+    /**
      * @var string
      */
     private static $exceptionHash;
@@ -66,12 +72,14 @@ class FailureContext implements MinkAwareContext
     public function __construct(
         $screenshotDirectory = null,
         $screenshotMode = self::SCREENSHOT_MODE_DEFAULT,
-        $siteFilters = []
+        $siteFilters = [],
+        $debugBarSelectors = []
     ) {
         date_default_timezone_set('Europe/London');
 
         $this->siteFilters = $siteFilters;
         $this->screenshotMode = $screenshotMode;
+        $this->debugBarSelectors = $debugBarSelectors;
 
         if ($screenshotDirectory) {
             $this->screenshotDir = $screenshotDirectory . DIRECTORY_SEPARATOR . date('Ymd-');
@@ -152,12 +160,23 @@ class FailureContext implements MinkAwareContext
                         $screenshotPath = 'Unable to produce screenshot: ' . $e->getMessage();
                     }
 
+                    $debugBarDetails = '';
+                    try {
+                        $debugBarDetails = $this->gatherDebugBarDetails(
+                            $this->debugBarSelectors,
+                            $page
+                        );
+                    } catch (Exeption $e) {
+                        $debugBarDetails = 'Unable to capture debug bar details: ' . $e->getMessage();
+                    }
+
                     $message = $this->getExceptionDetails(
                         $currentUrl,
                         $statusCode,
                         $scope->getFeature()->getFile(),
                         $exception->getFile(),
-                        $screenshotPath
+                        $screenshotPath,
+                        $debugBarDetails
                     );
 
                     $this->setAdditionalExceptionDetailsInException(
@@ -170,41 +189,6 @@ class FailureContext implements MinkAwareContext
                 echo 'Error message: ' . $e->getMessage();
             }
         }
-    }
-
-    /**
-     * @param string $currentUrl The current url.
-     * @param int $statusCode
-     * @param string $featureFile The feature file.
-     * @param string $contextFile The context file.
-     * @param string $screenshotPath The screenshot path.
-     *
-     * @return string
-     */
-    private function getExceptionDetails($currentUrl, $statusCode, $featureFile, $contextFile, $screenshotPath)
-    {
-        $message = PHP_EOL . PHP_EOL;
-        $message .= '[URL] ' . $currentUrl . PHP_EOL;
-        $message .= '[STATUS] ' . $statusCode . PHP_EOL;
-        $message .= '[FEATURE] ' . $featureFile . PHP_EOL;
-        $message .= '[CONTEXT] ' . $contextFile . PHP_EOL;
-        $message .= '[SCREENSHOT] ' . $screenshotPath . PHP_EOL;
-        $message .= '[RERUN] ' . './vendor/bin/behat ' . $featureFile . PHP_EOL;
-        $message .= PHP_EOL;
-
-        return $message;
-    }
-
-    /**
-     * @param Exception $exception The original exception.
-     * @param mixed $message
-     */
-    private function setAdditionalExceptionDetailsInException(Exception $exception, $message)
-    {
-        $reflectionObject = new ReflectionObject($exception);
-        $reflectionObjectProp = $reflectionObject->getProperty('message');
-        $reflectionObjectProp->setAccessible(true);
-        $reflectionObjectProp->setValue($exception, $exception->getMessage() . $message);
     }
 
     /**
@@ -283,5 +267,74 @@ class FailureContext implements MinkAwareContext
         $to = array_values($filters);
 
         return str_replace($from, $to, $content);
+    }
+
+    /**
+     * Override if gathering details is complex.
+     *
+     * @param array $debugBarSelectors
+     *
+     * @return string
+     */
+    protected function gatherDebugBarDetails(array $debugBarSelectors, DocumentElement $page)
+    {
+        $prefixSpace = '  ';
+        $details = '';
+        foreach ($debugBarSelectors as $name => $selector) {
+            $details .= $prefixSpace . '[' . strtoupper($name) . '] ';
+            if ($detailText = $page->find('css', $selector)) {
+                $details .= $detailText->getText();
+            } else {
+                $details .= 'Element "' . $selector . '" Not Found.';
+            }
+            $details .= PHP_EOL;
+        }
+        return $details;
+    }
+
+    /**
+     * @param string $currentUrl The current url.
+     * @param int $statusCode
+     * @param string $featureFile The feature file.
+     * @param string $contextFile The context file.
+     * @param string $screenshotPath The screenshot path.
+     *
+     * @return string
+     */
+    private function getExceptionDetails(
+        $currentUrl,
+        $statusCode,
+        $featureFile,
+        $contextFile,
+        $screenshotPath,
+        $debugBarDetails
+    ) {
+        $message = PHP_EOL . PHP_EOL;
+        $message .= '[URL] ' . $currentUrl . PHP_EOL;
+        $message .= '[STATUS] ' . $statusCode . PHP_EOL;
+        $message .= '[FEATURE] ' . $featureFile . PHP_EOL;
+        $message .= '[CONTEXT] ' . $contextFile . PHP_EOL;
+        $message .= '[SCREENSHOT] ' . $screenshotPath . PHP_EOL;
+        $message .= '[RERUN] ' . './vendor/bin/behat ' . $featureFile . PHP_EOL;
+
+        if ($debugBarDetails) {
+            $message .= '[DEBUG BAR INFO]' . PHP_EOL;
+            $message .= $debugBarDetails;
+        }
+        $message .= PHP_EOL;
+
+        return $message;
+    }
+
+    /**
+     * @param Exception $exception The original exception.
+     * @param mixed $message
+     */
+    private function setAdditionalExceptionDetailsInException(Exception $exception, $message)
+    {
+        $reflectionObject = new ReflectionObject($exception);
+        $reflectionObjectProp = $reflectionObject->getProperty('message');
+        $reflectionObjectProp->setAccessible(true);
+        $reflectionObjectProp->setValue($exception, $exception->getMessage() . $message);
     }
 }
