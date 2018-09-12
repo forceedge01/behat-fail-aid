@@ -7,6 +7,14 @@ Introduction
 Time and time again we've all seen how difficult and stressful it can become to fix behat tests. This package is their to help gather
 all possible information around failures and print them as you see a failure taking out the need to do basic investigations with minimal setup.
 
+Usual failure
+![Before](https://raw.githubusercontent.com/forceedge01/behat-fail-aid/master/extras/generic-from.png)
+
+With fail-aid context
+![After](https://raw.githubusercontent.com/forceedge01/behat-fail-aid/master/extras/generic-to.png)
+
+The links are ready to be clicked on and opened in the browser. No faff!
+
 Installation:
 -------------
 ```shell
