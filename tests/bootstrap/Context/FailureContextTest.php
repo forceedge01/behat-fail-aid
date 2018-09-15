@@ -256,7 +256,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         self::assertContains('[URL] http://site.dev/login', $result);
         self::assertContains('[STATUS] 200', $result);
         self::assertContains('[FEATURE] my/example/scenarios.feature', $result);
-        self::assertContains('[CONTEXT] /Users/wahabqureshi/projects/official/dixons/insurance/vendor/genesis/behat-fail-aid/tests/bootstrap/Context/FailureContextTest.php', $result);
+        self::assertRegExp('/\[CONTEXT\] \/.*\.php/', $result);
         self::assertContains('[SCREENSHOT] file:///private/var/folders/6r/g6h1lxlx2g5c44_8bvjwk3zr0000gp/T/', $result);
         self::assertContains('[DRIVER] Mock_DriverInterface_', $result);
         self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature', $result);
@@ -340,7 +340,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         self::assertContains('[URL] http://site.dev/login', $result);
         self::assertContains('[STATUS] 200', $result);
         self::assertContains('[FEATURE] my/example/scenarios.feature', $result);
-        self::assertContains('[CONTEXT] /Users/wahabqureshi/projects/official/dixons/insurance/vendor/genesis/behat-fail-aid/tests/bootstrap/Context/FailureContextTest.php', $result);
+        self::assertRegExp('/\[CONTEXT\] \/.*\.php/', $result);
         self::assertContains('[SCREENSHOT] file:///private/var/folders/6r/g6h1lxlx2g5c44_8bvjwk3zr0000gp/T/', $result);
         self::assertContains('[DRIVER] Mock_DriverInterface_', $result);
         self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature', $result);
@@ -416,7 +416,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         self::assertContains('[URL] http://site.dev/login', $result);
         self::assertContains('[STATUS] 200', $result);
         self::assertContains('[FEATURE] my/example/scenarios.feature', $result);
-        self::assertContains('[CONTEXT] /Users/wahabqureshi/projects/official/dixons/insurance/vendor/genesis/behat-fail-aid/tests/bootstrap/Context/FailureContextTest.php', $result);
+        self::assertRegExp('/\[CONTEXT\] \/.*\.php/', $result);
         self::assertContains('[SCREENSHOT] file:///private/var/folders/6r/g6h1lxlx2g5c44_8bvjwk3zr0000gp/T/', $result);
         self::assertContains('[DRIVER] Mock_DriverInterface_', $result);
         self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature', $result);
