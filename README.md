@@ -21,7 +21,7 @@ The links are ready to be clicked on and opened in the browser. No faff!
 Installation:
 -------------
 ```shell
-composer require genesis/behat-fail-aid
+composer require genesis/behat-fail-aid --dev
 ```
 
 Usage:
