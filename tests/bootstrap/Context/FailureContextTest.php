@@ -10,12 +10,19 @@ function file_put_contents($filename, $content)
 namespace FailAid\Tests\Context;
 
 use Behat\Behat\Hook\Scope\AfterStepScope;
+use Behat\Behat\Tester\Result\ExecutedStepResult;
+use Behat\Behat\Tester\Result\StepResult;
+use Behat\Gherkin\Node\FeatureNode;
+use Behat\Gherkin\Node\StepNode;
 use Behat\Mink\Driver\DriverInterface;
 use Behat\Mink\Driver\Selenium2Driver;
 use Behat\Mink\Element\DocumentElement;
 use Behat\Mink\Element\ElementInterface;
 use Behat\Mink\Mink;
+use Behat\Mink\Session;
+use Behat\Testwork\Environment\Environment;
 use Behat\Testwork\Hook\Scope\AfterTestScope;
+use Behat\Testwork\Tester\Result\ExceptionResult;
 use Behat\Testwork\Tester\Result\TestResult;
 use Exception;
 use FailAid\Context\FailureContext;
@@ -23,6 +30,29 @@ use PHPUnit_Framework_TestCase;
 use ReflectionClass;
 use ReflectionObject;
 use ReflectionProperty;
+
+class FailedStep implements ExceptionResult, StepResult
+{
+    public function hasException()
+    {
+
+    }
+
+    public function getException()
+    {
+
+    }
+
+    public function isPassed()
+    {
+
+    }
+
+    public function getResultCode()
+    {
+
+    }
+}
 
 class FailreContextTest extends PHPUnit_Framework_TestCase
 {
@@ -151,38 +181,249 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
 
     public function testTakeScreenshotAfterFailedStepPassed()
     {
-        $this->markTestIncomplete();
+        $scope = $this->getAfterStepScopeWithMockedParams();
 
-        // $scopeMock = $this->getMockBuilder(AfterStepScope::class)->getMock();
+        $scope->getTestResult()->expects($this->once())
+            ->method('getResultCode')
+            ->willReturn(TestResult::PASSED);
 
-        // $testResult = $this->getMockBuilder(TestResult::class)->getMock();
-        // $testResult->expects($this->once())
-        //     ->method('getResultCode')
-        //     ->willReturn(TestResult::PASSED);
+        $scope->getTestResult()->expects($this->never())
+            ->method('getException');
 
-        // $scopeMock->expects($this->once())
-        //     ->method('getTestResult')
-        //     ->willReturn($testResult);
+        $result = $this->testObject->takeScreenShotAfterFailedStep($scope);
 
-        // $this->testObject->takeScreenShotAfterFailedStep($scopeMock);
+        self::assertNull($result);
     }
 
-    public function testTakeScreenshotAfterFailedStepFailed()
+    public function testTakeScreenshotAfterFailedStepFailedBasic()
     {
-        $this->markTestIncomplete();
+        $featureFile = 'my/example/scenarios.feature';
+        $exceptionMessage = 'something went wrong';
+        $currentUrl = 'http://site.dev/login';
+        $statusCode = 200;
+        $html = '<html><body>Hello World</body></html>';
 
-        // $scopeMock = $this->getMockBuilder(AfterStepScope::class)->getMock();
+        $scope = $this->getAfterStepScopeWithMockedParams();
+        $scope->getTestResult()->expects($this->once())
+            ->method('getResultCode')
+            ->willReturn(TestResult::FAILED);
+        $scope->getTestResult()->expects($this->atLeastOnce())
+            ->method('getException')
+            ->willReturn(new Exception($exceptionMessage));
+        $scope->getFeature()->expects($this->atLeastOnce())
+            ->method('getFile')
+            ->willReturn($featureFile);
 
-        // $testResult = $this->getMockBuilder(TestResult::class)->getMock();
-        // $testResult->expects($this->once())
-        //     ->method('getResultCode')
-        //     ->willReturn(TestResult::PASSED);
+        $minkMock = function () use ($currentUrl, $statusCode, $html) {
+            $pageMock = $this->getMockBuilder(DocumentElement::class)
+                ->disableOriginalConstructor()
+                ->getMock();
+            $pageMock->expects($this->atLeastOnce())
+                ->method('getHtml')
+                ->willReturn($html);
+            $driverMock = $this->getMockBuilder(DriverInterface::class)
+                ->disableOriginalConstructor()
+                ->getMock();
 
-        // $scopeMock->expects($this->once())
-        //     ->method('getTestResult')
-        //     ->willReturn($testResult);
+            $sessionMock = $this->getMockBuilder(Session::class)
+                ->disableOriginalConstructor()
+                ->getMock();
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getPage')
+                ->willReturn($pageMock);
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getDriver')
+                ->willReturn($driverMock);
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getCurrentUrl')
+                ->willReturn($currentUrl);
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getStatusCode')
+                ->willReturn($statusCode);
 
-        // $this->testObject->takeScreenShotAfterFailedStep($scopeMock);
+            $minkMock = $this->getMockBuilder(Mink::class)->getMock();
+            $minkMock->expects($this->atLeastOnce())
+                ->method('getSession')
+                ->willReturn($sessionMock);
+
+            return $minkMock;
+        };
+
+        $result = $this->testObject
+            ->setMink($minkMock())
+            ->takeScreenShotAfterFailedStep($scope);
+
+        self::assertContains('[URL] http://site.dev/login', $result);
+        self::assertContains('[STATUS] 200', $result);
+        self::assertContains('[FEATURE] my/example/scenarios.feature', $result);
+        self::assertContains('[CONTEXT] /Users/wahabqureshi/projects/official/dixons/insurance/vendor/genesis/behat-fail-aid/tests/bootstrap/Context/FailureContextTest.php', $result);
+        self::assertContains('[SCREENSHOT] file:///private/var/folders/6r/g6h1lxlx2g5c44_8bvjwk3zr0000gp/T/', $result);
+        self::assertContains('[DRIVER] Mock_DriverInterface_', $result);
+        self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature', $result);
+        self::assertNotContains('[DEBUG BAR INFO]', $result);
+        self::assertNotContains('[STATE]', $result);
+    }
+
+    public function testTakeScreenshotAfterFailedStepFailedDebugBarDetails()
+    {
+        $featureFile = 'my/example/scenarios.feature';
+        $exceptionMessage = 'something went wrong';
+        $currentUrl = 'http://site.dev/login';
+        $statusCode = 200;
+        $html = '<html><body>Hello World</body></html>';
+
+        $scope = $this->getAfterStepScopeWithMockedParams();
+        $scope->getTestResult()->expects($this->once())
+            ->method('getResultCode')
+            ->willReturn(TestResult::FAILED);
+        $scope->getTestResult()->expects($this->atLeastOnce())
+            ->method('getException')
+            ->willReturn(new Exception($exceptionMessage));
+        $scope->getFeature()->expects($this->atLeastOnce())
+            ->method('getFile')
+            ->willReturn($featureFile);
+
+        $minkMock = function () use ($currentUrl, $statusCode, $html) {
+            $elementMock = $this->getMockBuilder(ElementInterface::class)
+                ->getMock();
+            $elementMock->expects($this->once())
+                ->method('getText')
+                ->willReturn('A registered service was not found.');
+
+            $pageMock = $this->getMockBuilder(DocumentElement::class)
+                ->disableOriginalConstructor()
+                ->getMock();
+            $pageMock->expects($this->atLeastOnce())
+                ->method('getHtml')
+                ->willReturn($html);
+            $pageMock->expects($this->at(2))
+                ->method('find')
+                ->with('css', '#debugBar .message')
+                ->willReturn($elementMock);
+            $driverMock = $this->getMockBuilder(DriverInterface::class)
+                ->disableOriginalConstructor()
+                ->getMock();
+
+            $sessionMock = $this->getMockBuilder(Session::class)
+                ->disableOriginalConstructor()
+                ->getMock();
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getPage')
+                ->willReturn($pageMock);
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getDriver')
+                ->willReturn($driverMock);
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getCurrentUrl')
+                ->willReturn($currentUrl);
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getStatusCode')
+                ->willReturn($statusCode);
+
+            $minkMock = $this->getMockBuilder(Mink::class)->getMock();
+            $minkMock->expects($this->atLeastOnce())
+                ->method('getSession')
+                ->willReturn($sessionMock);
+
+            return $minkMock;
+        };
+
+        $this->setPrivatePropertyValue('debugBarSelectors', [
+            'message' => '#debugBar .message',
+            'queries' => '#debugBar .queries'
+        ]);
+
+        $result = $this->testObject
+            ->setMink($minkMock())
+            ->takeScreenShotAfterFailedStep($scope);
+
+        self::assertContains('[URL] http://site.dev/login', $result);
+        self::assertContains('[STATUS] 200', $result);
+        self::assertContains('[FEATURE] my/example/scenarios.feature', $result);
+        self::assertContains('[CONTEXT] /Users/wahabqureshi/projects/official/dixons/insurance/vendor/genesis/behat-fail-aid/tests/bootstrap/Context/FailureContextTest.php', $result);
+        self::assertContains('[SCREENSHOT] file:///private/var/folders/6r/g6h1lxlx2g5c44_8bvjwk3zr0000gp/T/', $result);
+        self::assertContains('[DRIVER] Mock_DriverInterface_', $result);
+        self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature', $result);
+        self::assertContains('[DEBUG BAR INFO]', $result);
+        self::assertContains('  [MESSAGE] A registered service was not found.', $result);
+        self::assertContains('  [QUERIES] Element "#debugBar .queries" Not Found.', $result);
+        self::assertNotContains('[STATE]', $result);
+
+        $this->setPrivatePropertyValue('debugBarSelectors', []);
+    }
+
+    public function testTakeScreenshotAfterFailedStepFailedState()
+    {
+        $featureFile = 'my/example/scenarios.feature';
+        $exceptionMessage = 'something went wrong';
+        $currentUrl = 'http://site.dev/login';
+        $statusCode = 200;
+        $html = '<html><body>Hello World</body></html>';
+
+        $scope = $this->getAfterStepScopeWithMockedParams();
+        $scope->getTestResult()->expects($this->once())
+            ->method('getResultCode')
+            ->willReturn(TestResult::FAILED);
+        $scope->getTestResult()->expects($this->atLeastOnce())
+            ->method('getException')
+            ->willReturn(new Exception($exceptionMessage));
+        $scope->getFeature()->expects($this->atLeastOnce())
+            ->method('getFile')
+            ->willReturn($featureFile);
+
+        $minkMock = function () use ($currentUrl, $statusCode, $html) {
+            $pageMock = $this->getMockBuilder(DocumentElement::class)
+                ->disableOriginalConstructor()
+                ->getMock();
+            $pageMock->expects($this->atLeastOnce())
+                ->method('getHtml')
+                ->willReturn($html);
+            $driverMock = $this->getMockBuilder(DriverInterface::class)
+                ->disableOriginalConstructor()
+                ->getMock();
+
+            $sessionMock = $this->getMockBuilder(Session::class)
+                ->disableOriginalConstructor()
+                ->getMock();
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getPage')
+                ->willReturn($pageMock);
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getDriver')
+                ->willReturn($driverMock);
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getCurrentUrl')
+                ->willReturn($currentUrl);
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getStatusCode')
+                ->willReturn($statusCode);
+
+            $minkMock = $this->getMockBuilder(Mink::class)->getMock();
+            $minkMock->expects($this->atLeastOnce())
+                ->method('getSession')
+                ->willReturn($sessionMock);
+
+            return $minkMock;
+        };
+
+        FailureContext::addState('test user email', 'its.inevitable@hotmail.com');
+        FailureContext::addState('postcode', 'LD34 8GG');
+
+        $result = $this->testObject
+            ->setMink($minkMock())
+            ->takeScreenShotAfterFailedStep($scope);
+
+        self::assertContains('[URL] http://site.dev/login', $result);
+        self::assertContains('[STATUS] 200', $result);
+        self::assertContains('[FEATURE] my/example/scenarios.feature', $result);
+        self::assertContains('[CONTEXT] /Users/wahabqureshi/projects/official/dixons/insurance/vendor/genesis/behat-fail-aid/tests/bootstrap/Context/FailureContextTest.php', $result);
+        self::assertContains('[SCREENSHOT] file:///private/var/folders/6r/g6h1lxlx2g5c44_8bvjwk3zr0000gp/T/', $result);
+        self::assertContains('[DRIVER] Mock_DriverInterface_', $result);
+        self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature', $result);
+        self::assertNotContains('[DEBUG BAR INFO]', $result);
+        self::assertContains('[STATE]', $result);
+        self::assertContains('  [TEST USER EMAIL] its.inevitable@hotmail.com', $result);
+        self::assertContains('  [POSTCODE] LD34 8GG', $result);
     }
 
     /**
@@ -350,6 +591,7 @@ Info: clearly not equal.';
         $debugBarDetails = '  [MESSAGE] Page not found.
   [QUERY] Element "#debug .query" Not Found.
 ';
+        $stateDetails = '  [USER EMAIL] its.inevitable@hotmail.com';
 
         $result = $this->callProtectedMethod('getExceptionDetails', [
             $currentUrl,
@@ -357,7 +599,9 @@ Info: clearly not equal.';
             $featureFile,
             $contextFile,
             $screenshotPath,
-            $debugBarDetails
+            $debugBarDetails,
+            DriverInterface::class,
+            $stateDetails
         ]);
 
         self::assertEquals('
@@ -367,11 +611,13 @@ Info: clearly not equal.';
 [FEATURE] features/login.feature
 [CONTEXT] /Assertions/WebAssert.php
 [SCREENSHOT] /private/var/tmp/2873438.png
+[DRIVER] Behat\Mink\Driver\DriverInterface
 [RERUN] ./vendor/bin/behat features/login.feature
 [DEBUG BAR INFO]
   [MESSAGE] Page not found.
   [QUERY] Element "#debug .query" Not Found.
-
+[STATE]
+  [USER EMAIL] its.inevitable@hotmail.com
 ', $result);
     }
 
@@ -418,6 +664,28 @@ Info: clearly not equal.';
         $method->setAccessible(true);
 
         return $method->invokeArgs($this->testObject, $params);
+    }
+
+    /**
+     * @return AfterStepScope
+     */
+    private function getAfterStepScopeWithMockedParams()
+    {
+        $env = $this->getMockBuilder(Environment::class)->getMock();
+        $feature = $this->getMockBuilder(FeatureNode::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $step = $this->getMockBuilder(StepNode::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $stepResult = $this->getMockBuilder(FailedStep::class)->getMock();
+
+        return new AfterStepScope(
+            $env,
+            $feature,
+            $step,
+            $stepResult
+        );
     }
 
     private function setPrivatePropertyValue($property, $value)

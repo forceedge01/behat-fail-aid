@@ -12,12 +12,15 @@ use Behat\Mink\Exception\DriverException;
 use Behat\Mink\Mink;
 use Behat\Testwork\Tester\Result\TestResult;
 use Exception;
+use FailAid\Context\Contracts\DebugBarInterface;
+use FailAid\Context\Contracts\FailStateInterface;
+use FailAid\Context\Contracts\ScreenshotInterface;
 use ReflectionObject;
 
 /**
  * Defines application features from the specific context.
  */
-class FailureContext implements MinkAwareContext
+class FailureContext implements MinkAwareContext, FailStateInterface, ScreenshotInterface, DebugBarInterface
 {
     const SCREENSHOT_MODE_DEFAULT = 'default';
 
@@ -67,6 +70,11 @@ class FailureContext implements MinkAwareContext
      * @var string
      */
     private static $exceptionHash;
+
+    /**
+     * @var array
+     */
+    private static $states = [];
 
     /**
      * Initializes context.
@@ -119,12 +127,30 @@ class FailureContext implements MinkAwareContext
     }
 
     /**
+     * @BeforeScenario
+     */
+    public function refreshStates()
+    {
+        self::$states = [];
+    }
+
+    /**
+     * @param string $name
+     * @param string|int $value
+     */
+    public static function addState($name, $value)
+    {
+        self::$states[$name] = $value;
+    }
+
+    /**
      * @AfterStep
      */
     public function takeScreenShotAfterFailedStep(AfterStepScope $scope)
     {
         if ($scope->getTestResult()->getResultCode() === TestResult::FAILED) {
             try {
+                $message = null;
                 // To get away from appending exception details multiple times in one lifecycle
                 // of a test suite - we need to make sure the exception thrown is different
                 // from the previous one before working with it. This happens because each scenario
@@ -134,7 +160,6 @@ class FailureContext implements MinkAwareContext
                 if (self::$exceptionHash !== $objectHash) {
                     self::$exceptionHash = $objectHash;
                     $exception = $scope->getTestResult()->getException();
-                    $message = null;
 
                     $session = $this->getMink()->getSession();
                     $page = $session->getPage();
@@ -176,13 +201,17 @@ class FailureContext implements MinkAwareContext
                         $debugBarDetails = 'Unable to capture debug bar details: ' . $e->getMessage();
                     }
 
+                    $stateDetails = $this->getStateDetails(self::$states);
+
                     $message = $this->getExceptionDetails(
                         $currentUrl,
                         $statusCode,
                         $scope->getFeature()->getFile(),
                         $exception->getFile(),
                         $screenshotPath,
-                        $debugBarDetails
+                        $debugBarDetails,
+                        get_class($driver),
+                        $stateDetails
                     );
 
                     $this->setAdditionalExceptionDetailsInException(
@@ -190,6 +219,8 @@ class FailureContext implements MinkAwareContext
                         $message
                     );
                 }
+
+                return $message;
             } catch (DriverException $e) {
                 // The driver is not available, dont fail - allow behat to print out the actual error message.
                 echo 'Error message: ' . $e->getMessage();
@@ -224,6 +255,44 @@ class FailureContext implements MinkAwareContext
         file_put_contents($filename, $content);
 
         return 'file://' . $filename;
+    }
+
+    /**
+     * Override if gathering details is complex.
+     *
+     * @param array $debugBarSelectors
+     * @param DocumentElement $page
+     *
+     * @return string
+     */
+    public function gatherDebugBarDetails(array $debugBarSelectors, DocumentElement $page)
+    {
+        $details = '';
+        foreach ($debugBarSelectors as $name => $selector) {
+            $details .= '  [' . strtoupper($name) . '] ';
+            if ($detailText = $page->find('css', $selector)) {
+                $details .= $detailText->getText();
+            } else {
+                $details .= 'Element "' . $selector . '" Not Found.';
+            }
+            $details .= PHP_EOL;
+        }
+        return $details;
+    }
+
+    /**
+     * @param array $state
+     *
+     * @return string
+     */
+    public function getStateDetails(array $states)
+    {
+        $stateDetails = '';
+        foreach ($states as $stateName => $stateValue) {
+            $stateDetails .= '  [' . strtoupper($stateName) . '] ' . $stateValue . PHP_EOL;
+        }
+
+        return $stateDetails;
     }
 
     /**
@@ -276,34 +345,13 @@ class FailureContext implements MinkAwareContext
     }
 
     /**
-     * Override if gathering details is complex.
-     *
-     * @param array $debugBarSelectors
-     *
-     * @return string
-     */
-    protected function gatherDebugBarDetails(array $debugBarSelectors, DocumentElement $page)
-    {
-        $prefixSpace = '  ';
-        $details = '';
-        foreach ($debugBarSelectors as $name => $selector) {
-            $details .= $prefixSpace . '[' . strtoupper($name) . '] ';
-            if ($detailText = $page->find('css', $selector)) {
-                $details .= $detailText->getText();
-            } else {
-                $details .= 'Element "' . $selector . '" Not Found.';
-            }
-            $details .= PHP_EOL;
-        }
-        return $details;
-    }
-
-    /**
-     * @param string $currentUrl The current url.
+     * @param string $currentUrl
      * @param int $statusCode
-     * @param string $featureFile The feature file.
-     * @param string $contextFile The context file.
-     * @param string $screenshotPath The screenshot path.
+     * @param string $featureFile
+     * @param string $contextFile
+     * @param string $screenshotPath
+     * @param string $driver
+     * @param string $stateDetails
      *
      * @return string
      */
@@ -313,7 +361,9 @@ class FailureContext implements MinkAwareContext
         $featureFile,
         $contextFile,
         $screenshotPath,
-        $debugBarDetails
+        $debugBarDetails,
+        $driver,
+        $stateDetails
     ) {
         $message = PHP_EOL . PHP_EOL;
         $message .= '[URL] ' . $currentUrl . PHP_EOL;
@@ -321,11 +371,17 @@ class FailureContext implements MinkAwareContext
         $message .= '[FEATURE] ' . $featureFile . PHP_EOL;
         $message .= '[CONTEXT] ' . $contextFile . PHP_EOL;
         $message .= '[SCREENSHOT] ' . $screenshotPath . PHP_EOL;
+        $message .= '[DRIVER] ' . $driver . PHP_EOL;
         $message .= '[RERUN] ' . './vendor/bin/behat ' . $featureFile . PHP_EOL;
 
         if ($debugBarDetails) {
             $message .= '[DEBUG BAR INFO]' . PHP_EOL;
             $message .= $debugBarDetails;
+        }
+
+        if ($stateDetails) {
+            $message .= '[STATE]' . PHP_EOL;
+            $message .= $stateDetails;
         }
         $message .= PHP_EOL;
 

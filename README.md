@@ -89,6 +89,43 @@ debugBarSelectors option:
 
 The above will go through each of the selector and find the element. If the element is found, it will display the text contained in the failure output. The debug bar details are gather after taking a screenshot of the page, so its safe to navigate out to another page if needs be. If you have to do this, have a look at the 'Advanced Integration' section for more information.
 
+Recording states:
+-------------------------
+
+You can record the state of your test for a failure. A state resets before each scenario.
+
+```php
+# FeatureContext.php
+<?php
+
+use FailAid\Context\FailureContext;
+
+class FeatureContext
+{
+    /**
+     * @Given I am logged in
+     */
+    public function login()
+    {
+        $email = $this->createUserWithRandomEmail(); // assume this returns abc@xyz.com
+        $this->fillField('email', $email);
+        $this->fillField('password', 'xxxxxxxx');
+        $this->press('login');
+
+        FailureContext::addState('test user', $email);
+    }
+}
+```
+
+When the above step definition is used in any scenario, it will record the test user email within the current state of the scenario. If the scenario fails, you will get any information stored in the state within the failure message.
+
+```
+...
+[STATE]
+  [TEST USER] abc@xyz.com
+...
+```
+
 Common debugging issues:
 -------------------------
 
