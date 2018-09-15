@@ -375,12 +375,12 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         $message .= '[RERUN] ' . './vendor/bin/behat ' . $featureFile . PHP_EOL;
 
         if ($debugBarDetails) {
-            $message .= '[DEBUG BAR INFO]' . PHP_EOL;
+            $message .= PHP_EOL . '[DEBUG BAR INFO]' . PHP_EOL;
             $message .= $debugBarDetails;
         }
 
         if ($stateDetails) {
-            $message .= '[STATE]' . PHP_EOL;
+            $message .= PHP_EOL . '[STATE]' . PHP_EOL;
             $message .= $stateDetails;
         }
         $message .= PHP_EOL;

@@ -613,9 +613,11 @@ Info: clearly not equal.';
 [SCREENSHOT] /private/var/tmp/2873438.png
 [DRIVER] Behat\Mink\Driver\DriverInterface
 [RERUN] ./vendor/bin/behat features/login.feature
+
 [DEBUG BAR INFO]
   [MESSAGE] Page not found.
   [QUERY] Element "#debug .query" Not Found.
+
 [STATE]
   [USER EMAIL] its.inevitable@hotmail.com
 ', $result);
