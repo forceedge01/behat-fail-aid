@@ -13,6 +13,9 @@ Usual failure
 With fail-aid context
 ![After](https://raw.githubusercontent.com/forceedge01/behat-fail-aid/master/extras/generic-to.png)
 
+With config options enabled
+![More info](https://raw.githubusercontent.com/forceedge01/behat-fail-aid/master/extras/max-details.png)
+
 The links are ready to be clicked on and opened in the browser. No faff!
 
 Installation:
