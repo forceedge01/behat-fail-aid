@@ -158,7 +158,8 @@ class FeatureContext
         $params = [
             'screenshotDirectory' => null,
             'screenshotMode' => FailureContext::SCREENSHOT_MODE_DEFAULT,
-            'siteFilters' => []
+            'siteFilters' => [],
+            'debugBarSelectors' => []
         ];
 
         $scope->getEnvironment()->registerContextClass(
