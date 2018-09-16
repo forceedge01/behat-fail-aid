@@ -18,6 +18,15 @@ With config options enabled
 
 The links are ready to be clicked on and opened in the browser. No faff!
 
+You also get the following step definitions for free upon activation:
+
+```gherkin
+And I take a screenshot
+And I gather facts for the current state
+```
+
+These will output relevant information on the screen. (Your formatting must be pretty for this to work --format=pretty).
+
 Installation:
 -------------
 ```shell

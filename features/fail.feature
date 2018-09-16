@@ -6,4 +6,6 @@ Feature:
   Scenario:
     Given I am on the homepage
     And I record the state of the user
+    And I take a screenshot
+    And I gather facts for the current state
     Then I should see "Yo hello this will fail"

@@ -5,11 +5,13 @@ namespace FailAid\Context;
 use Behat\Behat\Context\Context;
 use Behat\Behat\Hook\Scope\AfterStepScope;
 use Behat\MinkExtension\Context\MinkAwareContext;
+use Behat\Mink\Driver\DriverInterface;
 use Behat\Mink\Driver\Selenium2Driver;
 use Behat\Mink\Element\DocumentElement;
 use Behat\Mink\Element\ElementInterface;
 use Behat\Mink\Exception\DriverException;
 use Behat\Mink\Mink;
+use Behat\Mink\Session;
 use Behat\Testwork\Tester\Result\TestResult;
 use Exception;
 use FailAid\Context\Contracts\DebugBarInterface;
@@ -102,6 +104,154 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         }
     }
 
+    /**
+     * @Given I take a screenshot
+     */
+    public function iTakeAScreenshot()
+    {
+        $session = $this->getMink()->getSession();
+        $screenshotPath = $this->takeScreenshot(
+            $this->screenshotDir,
+            $session->getPage(),
+            $session->getDriver()
+        );
+
+        echo '[SCREENSHOT] ' . $screenshotPath;
+    }
+
+    /**
+     * @Given I gather facts for the current state
+     */
+    public function iGatherFactsForTheCurrentState()
+    {
+        $session = $this->getMink()->getSession();
+        $page = $session->getPage();
+        $driver = $session->getDriver();
+
+        echo $this->gatherFacts(
+            $session,
+            $page,
+            $driver,
+            $this->debugBarSelectors,
+            'NA',
+            'NA',
+            $this->screenshotDir
+        );
+    }
+
+    /**
+     * @AfterStep
+     */
+    public function takeScreenShotAfterFailedStep(AfterStepScope $scope)
+    {
+        if ($scope->getTestResult()->getResultCode() === TestResult::FAILED) {
+            try {
+                $message = null;
+                // To get away from appending exception details multiple times in one lifecycle
+                // of a test suite - we need to make sure the exception thrown is different
+                // from the previous one before working with it. This happens because each scenario
+                // initialises new context files but the exception remains the same, and each context
+                // goes through the afterStep.
+                $objectHash = spl_object_hash($scope->getTestResult()->getException());
+                if (self::$exceptionHash !== $objectHash) {
+                    self::$exceptionHash = $objectHash;
+                    $exception = $scope->getTestResult()->getException();
+
+                    $session = $this->getMink()->getSession();
+                    $page = $session->getPage();
+                    $driver = $session->getDriver();
+
+                    $message = $this->gatherFacts(
+                        $session,
+                        $page,
+                        $driver,
+                        $this->debugBarSelectors,
+                        $scope->getFeature()->getFile(),
+                        $exception->getFile(),
+                        $this->screenshotDir
+                    );
+
+                    $this->setAdditionalExceptionDetailsInException(
+                        $exception,
+                        $message
+                    );
+                }
+
+                return $message;
+            } catch (DriverException $e) {
+                // The driver is not available, dont fail - allow behat to print out the actual error message.
+                echo 'Error message: ' . $e->getMessage();
+            }
+        }
+    }
+
+    private function gatherFacts(
+        Session $session,
+        DocumentElement $page,
+        DriverInterface $driver,
+        array $debugBarSelectors,
+        $featureFile,
+        $exceptionFile,
+        $screenshotDir
+    ) {
+        $message = null;
+
+        $session = $this->getMink()->getSession();
+        $page = $session->getPage();
+        $driver = $session->getDriver();
+        
+        $currentUrl = null;
+        try {
+            $currentUrl = $session->getCurrentUrl();
+        } catch (Exception $e) {
+            $currentUrl = 'Unable to fetch current url, error: ' . $e->getMessage();
+        }
+
+        $statusCode = null;
+        try {
+            $statusCode = $session->getStatusCode();
+        } catch (DriverException $e) {
+            $statusCode = 'Unable to fetch status code, error: ' . $e->getMessage();
+        }
+
+        $screenshotPath = null;
+        try {
+            $screenshotPath = $this->takeScreenshot(
+                $screenshotDir,
+                $page,
+                $driver
+            );
+        } catch (Exception $e) {
+            // Doesn't work.
+            $screenshotPath = 'Unable to produce screenshot: ' . $e->getMessage();
+        }
+
+        $debugBarDetails = '';
+        try {
+            $debugBarDetails = $this->gatherDebugBarDetails(
+                $debugBarSelectors,
+                $page
+            );
+        } catch (Exeption $e) {
+            $debugBarDetails = 'Unable to capture debug bar details: ' . $e->getMessage();
+        }
+
+        $stateDetails = $this->getStateDetails(self::$states);
+
+        $message = $this->getExceptionDetails(
+            $currentUrl,
+            $statusCode,
+            $featureFile,
+            $exceptionFile,
+            $screenshotPath,
+            $debugBarDetails,
+            get_class($driver),
+            $stateDetails
+        );
+
+        return $message;
+    }
+
     public function setMink(Mink $mink)
     {
         $this->mink = $mink;
@@ -141,91 +291,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     public static function addState($name, $value)
     {
         self::$states[$name] = $value;
-    }
-
-    /**
-     * @AfterStep
-     */
-    public function takeScreenShotAfterFailedStep(AfterStepScope $scope)
-    {
-        if ($scope->getTestResult()->getResultCode() === TestResult::FAILED) {
-            try {
-                $message = null;
-                // To get away from appending exception details multiple times in one lifecycle
-                // of a test suite - we need to make sure the exception thrown is different
-                // from the previous one before working with it. This happens because each scenario
-                // initialises new context files but the exception remains the same, and each context
-                // goes through the afterStep.
-                $objectHash = spl_object_hash($scope->getTestResult()->getException());
-                if (self::$exceptionHash !== $objectHash) {
-                    self::$exceptionHash = $objectHash;
-                    $exception = $scope->getTestResult()->getException();
-
-                    $session = $this->getMink()->getSession();
-                    $page = $session->getPage();
-                    $driver = $session->getDriver();
-                    
-                    $currentUrl = null;
-                    try {
-                        $currentUrl = $session->getCurrentUrl();
-                    } catch (Exception $e) {
-                        $currentUrl = 'Unable to fetch current url, error: ' . $e->getMessage();
-                    }
-
-                    $statusCode = null;
-                    try {
-                        $statusCode = $session->getStatusCode();
-                    } catch (DriverException $e) {
-                        $statusCode = 'Unable to fetch status code, error: ' . $e->getMessage();
-                    }
-
-                    $screenshotPath = null;
-                    try {
-                        $screenshotPath = $this->takeScreenshot(
-                            $this->screenshotDir,
-                            $page,
-                            $driver
-                        );
-                    } catch (Exception $e) {
-                        // Doesn't work.
-                        $screenshotPath = 'Unable to produce screenshot: ' . $e->getMessage();
-                    }
-
-                    $debugBarDetails = '';
-                    try {
-                        $debugBarDetails = $this->gatherDebugBarDetails(
-                            $this->debugBarSelectors,
-                            $page
-                        );
-                    } catch (Exeption $e) {
-                        $debugBarDetails = 'Unable to capture debug bar details: ' . $e->getMessage();
-                    }
-
-                    $stateDetails = $this->getStateDetails(self::$states);
-
-                    $message = $this->getExceptionDetails(
-                        $currentUrl,
-                        $statusCode,
-                        $scope->getFeature()->getFile(),
-                        $exception->getFile(),
-                        $screenshotPath,
-                        $debugBarDetails,
-                        get_class($driver),
-                        $stateDetails
-                    );
-
-                    $this->setAdditionalExceptionDetailsInException(
-                        $exception,
-                        $message
-                    );
-                }
-
-                return $message;
-            } catch (DriverException $e) {
-                // The driver is not available, dont fail - allow behat to print out the actual error message.
-                echo 'Error message: ' . $e->getMessage();
-            }
-        }
     }
 
     /**
