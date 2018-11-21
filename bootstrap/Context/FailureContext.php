@@ -88,6 +88,8 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     public function __construct()
     {
         date_default_timezone_set('Europe/London');
+        $this->screenshotDir = tempnam(sys_get_temp_dir(), date('Ymd-'));
+        $this->screenshotMode = self::SCREENSHOT_MODE_DEFAULT;
     }
 
     /**
@@ -97,19 +99,20 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      * @param array $debugBarSelectors
      */
     public function setConfig(
-        $screenshotDirectory = null,
-        $screenshotMode = self::SCREENSHOT_MODE_DEFAULT,
+        $screenshotDirectory,
+        $screenshotMode,
         array $siteFilters = [],
         array $debugBarSelectors = []
     ) {
         $this->siteFilters = $siteFilters;
-        $this->screenshotMode = $screenshotMode;
         $this->debugBarSelectors = $debugBarSelectors;
 
         if ($screenshotDirectory) {
             $this->screenshotDir = $screenshotDirectory . DIRECTORY_SEPARATOR . date('Ymd-');
-        } else {
-            $this->screenshotDir = tempnam(sys_get_temp_dir(), date('Ymd-'));
+        }
+
+        if ($screenshotMode) {
+            $this->screenshotMode = $screenshotMode;
         }
     }
 

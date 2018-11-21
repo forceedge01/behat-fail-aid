@@ -76,15 +76,12 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
      */
     public function setUp()
     {
-        $this->dependencies = [
-            'screenshotDirectory' => '',
-            'screenshotMode' => '',
-            'siteFilters' => [],
-            'debugBarSelectors' => []
-        ];
+        $this->dependencies = [];
 
         $this->reflection = new ReflectionClass(FailureContext::class);
         $this->testObject = $this->reflection->newInstanceArgs($this->dependencies);
+
+        $this->testObject->setConfig('','', [], []);
     }
 
     public function testInitStateDefault()
@@ -118,7 +115,8 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
             'queries' => '.debugBar .queries',
         ];
 
-        $this->testObject = new FailureContext(
+        $this->testObject = new FailureContext();
+        $this->testObject->setConfig(
             $expectedScreenshotDirectory,
             $expectedScreenshotMode,
             $expectedSiteFilters,
