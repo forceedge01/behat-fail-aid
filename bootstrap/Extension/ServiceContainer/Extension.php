@@ -89,13 +89,15 @@ class Extension implements ExtensionInterface
         $container->setParameter('genesis.failaid.config.screenshotDirectory', $config['screenshotDirectory']);
         $container->setParameter('genesis.failaid.config.screenshotMode', $config['screenshotMode']);
 
-        if (isset($config['debugBarSelectors'])) {
-            $container->setParameter('genesis.failaid.config.debugBarSelectors', $config['debugBarSelectors']);
+        if (! isset($config['debugBarSelectors'])) {
+            $config['debugBarSelectors'] = [];
         }
+        $container->setParameter('genesis.failaid.config.debugBarSelectors', $config['debugBarSelectors']);
 
-        if (isset($config['siteFilters'])) {
-            $container->setParameter('genesis.failaid.config.siteFilters', $config['siteFilters']);
+        if (! isset($config['siteFilters'])) {
+            $config['siteFilters'] = [];
         }
+        $container->setParameter('genesis.failaid.config.siteFilters', $config['siteFilters']);
 
         $definition = new Definition(Initializer::class, [
             '%genesis.failaid.config.screenshotDirectory%',

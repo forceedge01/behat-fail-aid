@@ -43,6 +43,8 @@ default:
     default:
       contexts:
         - FailAid\Context\FailureContext
+  extensions:
+    FailAid\Extension: ~
 ```
 
 This is the basic setup and will give you a lot of information on failures. For more options read through the rest of the README. Any of the options below can be used in conjunction with each other.
@@ -53,7 +55,7 @@ screenshotDirectory option:
 ```gherkin
 #behat.yml
 ...
-- FailAid\Context\FailureContext:
+- FailAid\Extension:
     screenshotDirectory: /temp/failures/behat/screenshots/
 ```
 
@@ -65,7 +67,7 @@ screenshotMode option:
 ```gherkin
 #behat.yml
 ...
-- FailAid\Context\FailureContext:
+- FailAid\Extension:
     screenshotMode: default
 ```
 
@@ -78,7 +80,7 @@ siteFilters option:
 ```gherkin
 #behat.yml
 ...
-- FailAid\Context\FailureContext:
+- FailAid\Extension:
     siteFilters:
       '/images/': 'http://dev.environment/images/'
       '/js/': 'http://dev.environment/js/'
@@ -92,7 +94,7 @@ debugBarSelectors option:
 ```gherkin
 #behat.yml
 ...
-- FailAid\Context\FailureContext:
+- FailAid\Extension:
     debugBarSelectors: #Only CSS selectors allowed.
       'Status Code': '#debugBar .statusCode'
       'Error Message': '#debugBar .errorMessage'
