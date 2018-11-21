@@ -85,14 +85,23 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      * You can also pass arbitrary arguments to the
      * context constructor through behat.yml.
      */
-    public function __construct(
+    public function __construct()
+    {
+        date_default_timezone_set('Europe/London');
+    }
+
+    /**
+     * @param string $screenshotDirectory
+     * @param string $screenshotMode
+     * @param array $siteFilters
+     * @param array $debugBarSelectors
+     */
+    public function setConfig(
         $screenshotDirectory = null,
         $screenshotMode = self::SCREENSHOT_MODE_DEFAULT,
         array $siteFilters = [],
         array $debugBarSelectors = []
     ) {
-        date_default_timezone_set('Europe/London');
-
         $this->siteFilters = $siteFilters;
         $this->screenshotMode = $screenshotMode;
         $this->debugBarSelectors = $debugBarSelectors;

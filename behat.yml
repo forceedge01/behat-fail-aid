@@ -4,11 +4,17 @@ default:
       contexts:
         - FeatureContext
         - Behat\MinkExtension\Context\MinkContext
-        - FailAid\Context\FailureContext:
-            debugBarSelectors:
-              message: '#debugBar .message'
-              queries: '#debugBar .queries'
+        - FailAid\Context\FailureContext
   extensions:
+    FailAid\Extension:
+      screenshotDirectory:
+      screenshotMode: default
+      debugBarSelectors:
+        message: '#debugBar .message'
+        queries: '#debugBar .queries'
+      siteFilters:
+        '/images/': 'http://dev.environment/images/'
+        '/js/': 'http://dev.environment/js/'
     Cjm\Behat\LocalWebserverExtension:
       docroot: '%paths.base%/app'
     Behat\MinkExtension:

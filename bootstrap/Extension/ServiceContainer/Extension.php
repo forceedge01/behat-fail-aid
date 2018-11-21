@@ -1,0 +1,109 @@
+<?php
+
+namespace FailAid\Extension\ServiceContainer;
+
+use Behat\Behat\Context\ServiceContainer\ContextExtension;
+use Behat\Testwork\ServiceContainer\Extension as ExtensionInterface;
+use Behat\Testwork\ServiceContainer\ExtensionManager;
+use FailAid\Context\FailureContext;
+use FailAid\Extension\Initializer\Initializer;
+use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
+
+/**
+ * Extension class.
+ */
+class Extension implements ExtensionInterface
+{
+    const CONTEXT_INITIALISER = 'failaid.context_initialiser';
+
+    /**
+     * You can modify the container here before it is dumped to PHP code.
+     *
+     * Create definition object to handle in the context?
+     */
+    public function process(ContainerBuilder $container)
+    {
+        return;
+    }
+
+    /**
+     * Returns the extension config key.
+     *
+     * @return string
+     */
+    public function getConfigKey()
+    {
+        return 'FailAidExtension';
+    }
+
+    /**
+     * Initializes other extensions.
+     *
+     * This method is called immediately after all extensions are activated but
+     * before any extension `configure()` method is called. This allows extensions
+     * to hook into the configuration of other extensions providing such an
+     * extension point.
+     *
+     * @param ExtensionManager $extensionManager
+     */
+    public function initialize(ExtensionManager $extensionManager)
+    {
+        return;
+    }
+
+    /**
+     * Setups configuration for the extension.
+     *
+     * @param ArrayNodeDefinition $builder
+     */
+    public function configure(ArrayNodeDefinition $builder)
+    {
+        $builder
+            ->children()
+                ->scalarNode('screenshotDirectory')
+                    ->defaultNull()
+                ->end()
+                ->scalarNode('screenshotMode')
+                    ->defaultValue('html')
+                ->end()
+                ->arrayNode('debugBarSelectors')
+                    ->ignoreExtraKeys(false)
+                ->end()
+                ->arrayNode('siteFilters')
+                    ->ignoreExtraKeys(false)
+                ->end()
+            ->end()
+        ->end();
+    }
+
+    /**
+     * Loads extension services into temporary container.
+     *
+     * @param ContainerBuilder $container
+     * @param array            $config
+     */
+    public function load(ContainerBuilder $container, array $config)
+    {
+        $container->setParameter('genesis.failaid.config.screenshotDirectory', $config['screenshotDirectory']);
+        $container->setParameter('genesis.failaid.config.screenshotMode', $config['screenshotMode']);
+
+        if (isset($config['debugBarSelectors'])) {
+            $container->setParameter('genesis.failaid.config.debugBarSelectors', $config['debugBarSelectors']);
+        }
+
+        if (isset($config['siteFilters'])) {
+            $container->setParameter('genesis.failaid.config.siteFilters', $config['siteFilters']);
+        }
+
+        $definition = new Definition(Initializer::class, [
+            '%genesis.failaid.config.screenshotDirectory%',
+            '%genesis.failaid.config.screenshotMode%',
+            '%genesis.failaid.config.siteFilters%',
+            '%genesis.failaid.config.debugBarSelectors%',
+        ]);
+        $definition->addTag(ContextExtension::INITIALIZER_TAG);
+        $container->setDefinition(self::CONTEXT_INITIALISER, $definition);
+    }
+}
