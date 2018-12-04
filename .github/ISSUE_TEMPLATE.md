@@ -4,4 +4,4 @@ How did it happen?
 
 What should have happened?
 
-- [] Demo
+- [ ] Demo
