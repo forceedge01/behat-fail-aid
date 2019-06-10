@@ -27,6 +27,15 @@ And I gather facts for the current state
 
 These will output relevant information on the screen. (Your formatting must be pretty for this to work --format=pretty).
 
+Whats new:
+----------
+
+Major: Properly integrate extension with behat.
+
+Minor: Autoclean option in behat.yml to clean up existing screenshots before the suite test start executing.
+
+Patch: NA
+
 Installation:
 -------------
 ```shell
