@@ -49,30 +49,28 @@ default:
 
 This is the basic setup and will give you a lot of information on failures. For more options read through the rest of the README. Any of the options below can be used in conjunction with each other.
 
-screenshotDirectory option:
+screenshot options:
 ----------------------------
 
 ```gherkin
 #behat.yml
 ...
 - FailAid\Extension:
-    screenshotDirectory: /temp/failures/behat/screenshots/
+    screenshot:
+        directory: /temp/failures/behat/screenshots/
+        mode: default
+        autoClean: false
 ```
 
-Override default screenshot path. Default folder is provided by `sys_get_temp_dir()` function.
+### directory (string):
+Override default screenshot path. Default folder is provided by `sys_get_temp_dir()` function. Can be a relative path.
 
-screenshotMode option:
-------------------------
-
-```gherkin
-#behat.yml
-...
-- FailAid\Extension:
-    screenshotMode: default
-```
-
+### mode (string): 
 default: Selenium2 enabled drivers will produce a png, anything else will produce html screenshots.
 html: All drivers will produce html screenshots, useful for interrogating runtime code.
+
+### autoClean (bool):
+Clean up the directory before the test suite runs.
 
 siteFilters option:
 --------------------
@@ -167,8 +165,11 @@ class FeatureContext
     public static function loadFailureContext(BeforeSuiteScope $scope)
     {
         $params = [
-            'screenshotDirectory' => null,
-            'screenshotMode' => FailureContext::SCREENSHOT_MODE_DEFAULT,
+            'screenshot' => [
+              'directory' => null,
+              'mode' => FailureContext::SCREENSHOT_MODE_DEFAULT,
+              'autoClean' => false,
+            ],
             'siteFilters' => [],
             'debugBarSelectors' => []
         ];

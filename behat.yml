@@ -7,8 +7,10 @@ default:
         - FailAid\Context\FailureContext
   extensions:
     FailAid\Extension:
-      screenshotDirectory:
-      screenshotMode: default
+      screenshot:
+        directory: ./features/failures
+        mode: default
+        autoClean: false
       debugBarSelectors:
         message: '#debugBar .message'
         queries: '#debugBar .queries'

@@ -10,7 +10,6 @@ function file_put_contents($filename, $content)
 namespace FailAid\Tests\Context;
 
 use Behat\Behat\Hook\Scope\AfterStepScope;
-use Behat\Behat\Tester\Result\ExecutedStepResult;
 use Behat\Behat\Tester\Result\StepResult;
 use Behat\Gherkin\Node\FeatureNode;
 use Behat\Gherkin\Node\StepNode;
@@ -21,7 +20,6 @@ use Behat\Mink\Element\ElementInterface;
 use Behat\Mink\Mink;
 use Behat\Mink\Session;
 use Behat\Testwork\Environment\Environment;
-use Behat\Testwork\Hook\Scope\AfterTestScope;
 use Behat\Testwork\Tester\Result\ExceptionResult;
 use Behat\Testwork\Tester\Result\TestResult;
 use Exception;
@@ -81,7 +79,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         $this->reflection = new ReflectionClass(FailureContext::class);
         $this->testObject = $this->reflection->newInstanceArgs($this->dependencies);
 
-        $this->testObject->setConfig('','', [], []);
+        $this->testObject->setConfig([], [], []);
     }
 
     public function testInitStateDefault()
@@ -117,8 +115,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
 
         $this->testObject = new FailureContext();
         $this->testObject->setConfig(
-            $expectedScreenshotDirectory,
-            $expectedScreenshotMode,
+            ['directory' => $expectedScreenshotDirectory, 'mode' => $expectedScreenshotMode],
             $expectedSiteFilters,
             $expectedDebugBarSelectors
         );
