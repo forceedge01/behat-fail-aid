@@ -12,12 +12,15 @@ use Behat\Mink\Element\ElementInterface;
 use Behat\Mink\Exception\DriverException;
 use Behat\Mink\Mink;
 use Behat\Mink\Session;
+use Behat\Testwork\ServiceContainer\Configuration\ConfigurationLoader;
 use Behat\Testwork\Tester\Result\TestResult;
+use DirectoryIterator;
 use Exception;
 use FailAid\Context\Contracts\DebugBarInterface;
 use FailAid\Context\Contracts\FailStateInterface;
 use FailAid\Context\Contracts\ScreenshotInterface;
 use ReflectionObject;
+use Symfony\Component\Console\Input\ArgvInput;
 
 /**
  * Defines application features from the specific context.
@@ -64,6 +67,11 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     private $screenshotDir;
 
     /**
+     * @var boolean
+     */
+    private $screenshotAutoClean = false;
+
+    /**
      * @var array
      */
     private $debugBarSelectors = [];
@@ -93,26 +101,28 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     }
 
     /**
-     * @param string $screenshotDirectory
-     * @param string $screenshotMode
+     * @param array $screenshot
      * @param array $siteFilters
      * @param array $debugBarSelectors
      */
     public function setConfig(
-        $screenshotDirectory,
-        $screenshotMode,
+        array $screenshot = [],
         array $siteFilters = [],
         array $debugBarSelectors = []
     ) {
         $this->siteFilters = $siteFilters;
         $this->debugBarSelectors = $debugBarSelectors;
 
-        if ($screenshotDirectory) {
-            $this->screenshotDir = $screenshotDirectory . DIRECTORY_SEPARATOR . date('Ymd-');
+        if (isset($screenshot['directory'])) {
+            $this->screenshotDir = realpath($screenshot['directory']) . DIRECTORY_SEPARATOR . date('Ymd-');
         }
 
-        if ($screenshotMode) {
-            $this->screenshotMode = $screenshotMode;
+        if (isset($screenshot['mode'])) {
+            $this->screenshotMode = $screenshot['mode'];
+        }
+
+        if (isset($screenshot['autoClean'])) {
+            $this->screenshotAutoClean = $screenshot['autoClean'];
         }
     }
 
@@ -149,6 +159,51 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
             'NA',
             $this->screenshotDir
         );
+    }
+
+    /**
+     * @BeforeSuite
+     * 
+     * Load the config file again as the context params aren't available until the context is initialised.
+     *
+     * @param mixed $arg1
+     */
+    public static function autoClean($arg1)
+    {
+        $configPath = self::getConfigFilePath();
+        $config = (new ConfigurationLoader('BEHAT_PARAMS', $configPath))->loadConfiguration();
+
+        if (! isset($config[0]['extensions']['FailAid\\Extension']['screenshot'])) {
+            return;
+        }
+
+        $screenshotConfig = $config[0]['extensions']['FailAid\\Extension']['screenshot'];
+
+        if (! $screenshotConfig['autoClean']) {
+            return;
+        }
+
+        $extensions = ['png', 'html'];
+        $directory = isset($screenshotConfig['directory']) ? $screenshotConfig['directory'] : sys_get_temp_dir();
+        foreach (new DirectoryIterator($directory) as $file) {
+            if ($file->isFile() && in_array($file->getExtension(), $extensions)) {
+                unlink($directory . DIRECTORY_SEPARATOR . $file->getFilename());
+            }
+        }
+    }
+
+    /**
+     * Get the behat.yml config path from provided cli path or the default expected location.
+     *
+     * @return string
+     */
+    private static function getConfigFilePath()
+    {
+        $input = new ArgvInput();
+        $path = $input->getParameterOption(['-c', '--config'],  'behat.yml');
+        $basePath = getcwd();
+
+        return $basePath . DIRECTORY_SEPARATOR . $path;
     }
 
     /**
@@ -211,7 +266,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         $session = $this->getMink()->getSession();
         $page = $session->getPage();
         $driver = $session->getDriver();
-        
+
         $currentUrl = null;
         try {
             $currentUrl = $session->getCurrentUrl();
@@ -297,7 +352,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     }
 
     /**
-     * @param string $name
+     * @param string     $name
      * @param string|int $value
      */
     public static function addState($name, $value)
@@ -307,8 +362,8 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
 
     /**
      * @param string $filename The filename for the screenshot.
-     * @param Page $page The page object.
-     * @param Driver $driver The driver used to run the test.
+     * @param Page   $page     The page object.
+     * @param Driver $driver   The driver used to run the test.
      *
      * @return string
      */
@@ -337,7 +392,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     /**
      * Override if gathering details is complex.
      *
-     * @param array $debugBarSelectors
+     * @param array           $debugBarSelectors
      * @param DocumentElement $page
      *
      * @return string
@@ -423,12 +478,13 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
 
     /**
      * @param string $currentUrl
-     * @param int $statusCode
+     * @param int    $statusCode
      * @param string $featureFile
      * @param string $contextFile
      * @param string $screenshotPath
      * @param string $driver
      * @param string $stateDetails
+     * @param mixed  $debugBarDetails
      *
      * @return string
      */
@@ -467,7 +523,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
 
     /**
      * @param Exception $exception The original exception.
-     * @param mixed $message
+     * @param mixed     $message
      */
     private function setAdditionalExceptionDetailsInException(Exception $exception, $message)
     {

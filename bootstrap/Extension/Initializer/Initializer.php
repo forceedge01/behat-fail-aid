@@ -12,13 +12,11 @@ use FailAid\Context\FailureContext;
 class Initializer implements ContextInitializer
 {
     public function __construct(
-        $screenshotDirectory = null,
-        $screenshotMode = self::SCREENSHOT_MODE_DEFAULT,
+        array $screenshot,
         array $siteFilters = [],
         array $debugBarSelectors = []
     ) {
-        $this->screenshotDirectory = $screenshotDirectory;
-        $this->screenshotMode = $screenshotMode;
+        $this->screenshot = $screenshot;
         $this->siteFilters = $siteFilters;
         $this->debugBarSelectors = $debugBarSelectors;
     }
@@ -30,8 +28,7 @@ class Initializer implements ContextInitializer
     {
         if ($context instanceof FailureContext) {
             $context->setConfig(
-                $this->screenshotDirectory,
-                $this->screenshotMode,
+                $this->screenshot,
                 $this->siteFilters,
                 $this->debugBarSelectors
             );

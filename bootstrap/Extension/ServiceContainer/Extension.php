@@ -5,7 +5,6 @@ namespace FailAid\Extension\ServiceContainer;
 use Behat\Behat\Context\ServiceContainer\ContextExtension;
 use Behat\Testwork\ServiceContainer\Extension as ExtensionInterface;
 use Behat\Testwork\ServiceContainer\ExtensionManager;
-use FailAid\Context\FailureContext;
 use FailAid\Extension\Initializer\Initializer;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -62,9 +61,28 @@ class Extension implements ExtensionInterface
     {
         $builder
             ->children()
+                ->arrayNode('screenshot')
+                    ->children()
+                        ->scalarNode('directory')
+                            ->defaultNull()
+                        ->end()
+                        ->scalarNode('mode')
+                            ->defaultValue('html')
+                        ->end()
+                        ->scalarNode('autoClean')
+                            ->defaultValue(false)
+                        ->end()
+                    ->end()
+                ->end()
+                /**
+                 * DEPRECATED in favour of screenshot option, to be removed in next major version bump.
+                 */
                 ->scalarNode('screenshotDirectory')
                     ->defaultNull()
                 ->end()
+                /**
+                 * DEPRECATED in favour of screenshot option, to be removed in next major version bump.
+                 */
                 ->scalarNode('screenshotMode')
                     ->defaultValue('html')
                 ->end()
@@ -86,8 +104,7 @@ class Extension implements ExtensionInterface
      */
     public function load(ContainerBuilder $container, array $config)
     {
-        $container->setParameter('genesis.failaid.config.screenshotDirectory', $config['screenshotDirectory']);
-        $container->setParameter('genesis.failaid.config.screenshotMode', $config['screenshotMode']);
+        $container->setParameter('genesis.failaid.config.screenshot', $this->getScreenshotOptions($config));
 
         if (! isset($config['debugBarSelectors'])) {
             $config['debugBarSelectors'] = [];
@@ -100,12 +117,31 @@ class Extension implements ExtensionInterface
         $container->setParameter('genesis.failaid.config.siteFilters', $config['siteFilters']);
 
         $definition = new Definition(Initializer::class, [
-            '%genesis.failaid.config.screenshotDirectory%',
-            '%genesis.failaid.config.screenshotMode%',
+            '%genesis.failaid.config.screenshot%',
             '%genesis.failaid.config.siteFilters%',
             '%genesis.failaid.config.debugBarSelectors%',
         ]);
         $definition->addTag(ContextExtension::INITIALIZER_TAG);
         $container->setDefinition(self::CONTEXT_INITIALISER, $definition);
+    }
+
+    /**
+     * @param array $config
+     *
+     * @return string
+     */
+    private function getScreenshotOptions(array $config)
+    {
+        if (isset($config['screenshot'])) {
+            return $config['screenshot'];
+        }
+
+        /**
+         * DEPRECATED, to be removed in next major version bump.
+         */
+        return [
+            'directory' => isset($config['screenshotDirectory']) ? $config['screenshotDirectory'] : null,
+            'mode' => ($config['screenshotMode']) ? $config['screenshotMode'] : null,
+        ];
     }
 }
