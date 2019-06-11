@@ -203,7 +203,16 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         $path = $input->getParameterOption(['-c', '--config'],  'behat.yml');
         $basePath = getcwd();
 
-        return $basePath . DIRECTORY_SEPARATOR . $path;
+        $configFile = $basePath . DIRECTORY_SEPARATOR . $path;
+
+        if (! file_exists($configFile)) {
+            throw new Exception(
+                "Autoclean: Config file '$path' not found at base path: '$basePath',
+                please pass in the path to the config file through the -c flag and check permissions."
+            );
+        }
+
+        return $configFile;
     }
 
     /**
