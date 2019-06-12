@@ -7,6 +7,11 @@ function file_put_contents($filename, $content)
     return true;
 }
 
+function realpath($path)
+{
+    return $path;
+}
+
 namespace FailAid\Tests\Context;
 
 use Behat\Behat\Hook\Scope\AfterStepScope;
@@ -104,6 +109,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
     {
         $expectedScreenshotDirectory = '/abc/123/';
         $expectedScreenshotMode = 'html';
+        $expectedScreenshotAutoclean = true;
         $expectedSiteFilters = [
             '/js/' => 'http://site.dev/js/',
             '/css/' => 'http://site.dev/css/',
@@ -115,7 +121,11 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
 
         $this->testObject = new FailureContext();
         $this->testObject->setConfig(
-            ['directory' => $expectedScreenshotDirectory, 'mode' => $expectedScreenshotMode],
+            [
+                'directory' => $expectedScreenshotDirectory,
+                'mode' => $expectedScreenshotMode,
+                'autoClean' => $expectedScreenshotAutoclean,
+            ],
             $expectedSiteFilters,
             $expectedDebugBarSelectors
         );
@@ -124,11 +134,13 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         $screenshotMode = $this->getPrivatePropertyValue('screenshotMode');
         $debugBarSelectors = $this->getPrivatePropertyValue('debugBarSelectors');
         $screenshotDirectory = $this->getPrivatePropertyValue('screenshotDir');
+        $screenshotAutoClean = $this->getPrivatePropertyValue('screenshotAutoClean');
 
         self::assertStringStartsWith($expectedScreenshotDirectory, $screenshotDirectory);
         self::assertNotEquals($expectedScreenshotDirectory, $screenshotDirectory);
         self::assertEquals($expectedScreenshotMode, $screenshotMode);
         self::assertEquals($expectedSiteFilters, $siteFilters);
+        self::assertEquals($expectedScreenshotAutoclean, $screenshotAutoClean);
         self::assertEquals($expectedDebugBarSelectors, $debugBarSelectors);
     }
 
