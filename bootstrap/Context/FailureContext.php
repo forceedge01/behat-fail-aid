@@ -201,9 +201,14 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     {
         $input = new ArgvInput();
         $path = $input->getParameterOption(['-c', '--config'],  'behat.yml');
-        $basePath = getcwd();
+        $basePath = '';
 
-        $configFile = $basePath . DIRECTORY_SEPARATOR . $path;
+        // If the path provided isn't an absolute path, then find the folder it is in recursively.
+        if (substr($path, 0, 1) !== '/') {
+            $basePath = self::getBasePathForFile('behat.yml', getcwd()) . DIRECTORY_SEPARATOR;
+        }
+
+        $configFile = $basePath . $path;
 
         if (! file_exists($configFile)) {
             throw new Exception(
@@ -213,6 +218,28 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         }
 
         return $configFile;
+    }
+
+    /**
+     * @param string $file
+     * @param string $path
+     *
+     * @return string
+     */
+    private static function getBasePathForFile($file, $path)
+    {
+        if (! file_exists($path . DIRECTORY_SEPARATOR . $file)) {
+            $chunks = explode(DIRECTORY_SEPARATOR, $path);
+
+            if (null === array_pop($chunks)) {
+                throw new Exception($file . ' not found in hierarchy of directory.');
+            }
+
+            $path = implode(DIRECTORY_SEPARATOR, $chunks);
+            self::getBasePathForFile($file, $path);
+        }
+
+        return $path;
     }
 
     /**

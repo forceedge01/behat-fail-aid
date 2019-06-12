@@ -10,7 +10,7 @@ default:
       screenshot:
         directory: ./features/failures
         mode: default
-        autoClean: false
+        autoClean: true
       debugBarSelectors:
         message: '#debugBar .message'
         queries: '#debugBar .queries'
