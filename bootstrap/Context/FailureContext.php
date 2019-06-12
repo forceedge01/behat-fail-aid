@@ -205,7 +205,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
 
         // If the path provided isn't an absolute path, then find the folder it is in recursively.
         if (substr($path, 0, 1) !== '/') {
-            $basePath = self::getBasePathForFile('behat.yml', getcwd()) . DIRECTORY_SEPARATOR;
+            $basePath = self::getBasePathForFile($path, getcwd()) . DIRECTORY_SEPARATOR;
         }
 
         $configFile = $basePath . $path;
@@ -231,11 +231,12 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         if (! file_exists($path . DIRECTORY_SEPARATOR . $file)) {
             $chunks = explode(DIRECTORY_SEPARATOR, $path);
 
-            if (null === array_pop($chunks)) {
+            if (null === array_pop($chunks) || !$path) {
                 throw new Exception($file . ' not found in hierarchy of directory.');
             }
 
             $path = implode(DIRECTORY_SEPARATOR, $chunks);
+            echo $path . PHP_EOL;
             self::getBasePathForFile($file, $path);
         }
 
