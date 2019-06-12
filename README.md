@@ -34,7 +34,7 @@ Major: Properly integrate extension with behat.
 
 Minor: Autoclean option in behat.yml to clean up existing screenshots before the suite test start executing.
 
-Patch: NA
+Patch: Fixed issue with loading behat.yml file in beforeSuite hook.
 
 Installation:
 -------------
