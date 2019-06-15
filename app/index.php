@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
 <body>
 This is a sample page for behat test. Run on localhost:8000
 <div id="debugBar">
