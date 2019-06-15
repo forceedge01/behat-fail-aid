@@ -406,7 +406,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      */
     public function takeScreenshot($filename, ElementInterface $page, $driver)
     {
-        if (! $page->getHtml()) {
+        if (! $page->getOuterHtml()) {
             throw new Exception('Unable to take screenshot, page content not found.');
         }
 
@@ -415,7 +415,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         // If not selenium driver, extract the html and put in file.
         if ($this->screenshotMode === self::SCREENSHOT_MODE_HTML || ! ($driver instanceof Selenium2Driver)) {
             $filename .= '.html';
-            $content = $this->applySiteSpecificFilters($page->getHtml());
+            $content = $this->applySiteSpecificFilters($page->getOuterHtml());
         } else {
             $filename .= '.png';
             $content = $driver->getScreenshot();
