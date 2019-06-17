@@ -6,7 +6,6 @@ use Behat\Behat\Context\Context;
 use Behat\Behat\Hook\Scope\AfterStepScope;
 use Behat\MinkExtension\Context\MinkAwareContext;
 use Behat\Mink\Driver\DriverInterface;
-use Behat\Mink\Driver\Selenium2Driver;
 use Behat\Mink\Element\DocumentElement;
 use Behat\Mink\Element\ElementInterface;
 use Behat\Mink\Exception\DriverException;
@@ -163,7 +162,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
 
     /**
      * @BeforeSuite
-     * 
+     *
      * Load the config file again as the context params aren't available until the context is initialised.
      *
      * @param mixed $arg1
@@ -183,7 +182,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
             return;
         }
 
-        $extensions = ['png', 'html'];
+        $extensions = ['gif', 'jpg', 'jpeg', 'tiff', 'png', 'html'];
         $directory = isset($screenshotConfig['directory']) ? $screenshotConfig['directory'] : sys_get_temp_dir();
         foreach (new DirectoryIterator($directory) as $file) {
             if ($file->isFile() && in_array($file->getExtension(), $extensions)) {
@@ -413,12 +412,13 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         $content = null;
         $filename .= microtime(true);
         // If not selenium driver, extract the html and put in file.
-        if ($this->screenshotMode === self::SCREENSHOT_MODE_HTML || ! ($driver instanceof Selenium2Driver)) {
+        if ($this->screenshotMode === self::SCREENSHOT_MODE_HTML || ! ($driver instanceof DriverInterface)) {
             $filename .= '.html';
             $content = $this->applySiteSpecificFilters($page->getOuterHtml());
         } else {
-            $filename .= '.png';
             $content = $driver->getScreenshot();
+            $size = getimagesizefromstring($content);
+            $filename .= image_type_to_extension($size[2]);
         }
 
         file_put_contents($filename, $content);
