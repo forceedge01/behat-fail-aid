@@ -261,19 +261,25 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
                     self::$exceptionHash = $objectHash;
                     $exception = $scope->getTestResult()->getException();
 
-                    $session = $this->getMink()->getSession();
-                    $page = $session->getPage();
-                    $driver = $session->getDriver();
+                    $message = '';
+                    $mink = $this->getMink();
+                    if ($mink) {
+                        $session = $this->getMink()->getSession();
+                        $page = $session->getPage();
+                        $driver = $session->getDriver();
 
-                    $message = $this->gatherFacts(
-                        $session,
-                        $page,
-                        $driver,
-                        $this->debugBarSelectors,
-                        $scope->getFeature()->getFile(),
-                        $exception->getFile(),
-                        $this->screenshotDir
-                    );
+                        $message = $this->gatherFacts(
+                            $session,
+                            $page,
+                            $driver,
+                            $this->debugBarSelectors,
+                            $scope->getFeature()->getFile(),
+                            $exception->getFile(),
+                            $this->screenshotDir
+                        );
+                    }
+
+                    $message = $this->addStateDetails($message, $this->getStateDetails(self::$states));
 
                     $this->setAdditionalExceptionDetailsInException(
                         $exception,
@@ -340,8 +346,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
             $debugBarDetails = 'Unable to capture debug bar details: ' . $e->getMessage();
         }
 
-        $stateDetails = $this->getStateDetails(self::$states);
-
         $message = $this->getExceptionDetails(
             $currentUrl,
             $statusCode,
@@ -349,8 +353,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
             $exceptionFile,
             $screenshotPath,
             $debugBarDetails,
-            get_class($driver),
-            $stateDetails
+            get_class($driver)
         );
 
         return $message;
@@ -520,7 +523,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      * @param string $contextFile
      * @param string $screenshotPath
      * @param string $driver
-     * @param string $stateDetails
      * @param mixed  $debugBarDetails
      *
      * @return string
@@ -532,8 +534,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         $contextFile,
         $screenshotPath,
         $debugBarDetails,
-        $driver,
-        $stateDetails
+        $driver
     ) {
         $message = PHP_EOL . PHP_EOL;
         $message .= '[URL] ' . $currentUrl . PHP_EOL;
@@ -549,6 +550,17 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
             $message .= $debugBarDetails;
         }
 
+        return $message;
+    }
+
+    /**
+     * @param string $message      The message to append the details onto.
+     * @param string $stateDetails The state details.
+     *
+     * @return string
+     */
+    private function addStateDetails($message, $stateDetails)
+    {
         if ($stateDetails) {
             $message .= PHP_EOL . '[STATE]' . PHP_EOL;
             $message .= $stateDetails;
