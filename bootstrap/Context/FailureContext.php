@@ -262,13 +262,19 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
                     $exception = $scope->getTestResult()->getException();
 
                     $message = '';
+                    try {
+                        $this->getMink()->getSession()->getPage()->getOuterHtml();
+                    } catch (\WebDriver\Exception\NoSuchElement $e) {
+                        $message = PHP_EOL . PHP_EOL . 'The page is blank, is the driver/browser ready to receive the request?';
+                    }
+
                     $mink = $this->getMink();
                     if ($mink) {
                         $session = $this->getMink()->getSession();
                         $page = $session->getPage();
                         $driver = $session->getDriver();
 
-                        $message = $this->gatherFacts(
+                        $message .= $this->gatherFacts(
                             $session,
                             $page,
                             $driver,
