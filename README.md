@@ -32,7 +32,7 @@ Whats new:
 
 Major: Properly integrate extension with behat.
 
-Minor: Autoclean option in behat.yml to clean up existing screenshots before the suite test start executing.
+Minor: Detect when the page has no content and respond with a catered message.
 
 Patch: If working with state debugging, don't rely on mink extension.
 
