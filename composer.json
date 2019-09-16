@@ -22,5 +22,10 @@
     "psr-4": {
       "FailAid\\": "bootstrap/"
     }
+  },
+  "suggest": {
+    "genesis/sql-data-mods": "Extends behat-sql-extension to provide a powerful and simple framework to manage your data modules.",
+    "genesis/test-routing": "Simplistic routing that can extend main app routing for testing purposes.",
+    "genesis/db-backup-restore": "Quickly backup and restore your database."
   }
 }
