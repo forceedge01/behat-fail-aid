@@ -48,6 +48,11 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
 
     /**
      * @var array
+     */
+    private $trackJs;
+
+    /**
+     * @var array
      *
      * @example [
      *     '/images/' => 'http://dev.environment/images/',
@@ -85,11 +90,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      * @var array
      */
     private static $states = [];
-
-    /**
-     * @var string
-     */
-    private static $currentUrl;
 
     /**
      * Initializes context.
