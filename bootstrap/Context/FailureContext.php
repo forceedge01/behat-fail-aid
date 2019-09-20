@@ -660,22 +660,22 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         $message .= '[CONTEXT] ' . $contextFile . PHP_EOL;
         $message .= '[SCREENSHOT] ' . $screenshotPath . PHP_EOL;
         $message .= '[DRIVER] ' . $driver . PHP_EOL;
-        $message .= '[RERUN] ' . './vendor/bin/behat ' . $featureFile . PHP_EOL;
+        $message .= '[RERUN] ' . './vendor/bin/behat ' . $featureFile . PHP_EOL . PHP_EOL;
 
         if ($jsErrors) {
-            $message .= '[JSERRORS] ' . implode(PHP_EOL, $jsErrors) . PHP_EOL;
+            $message .= '[JSERRORS] ' . implode(PHP_EOL, $jsErrors) . PHP_EOL . PHP_EOL;
         }
 
         if ($jsWarns) {
-            $message .= '[JSWARNS] ' . implode(PHP_EOL, $jsWarns) . PHP_EOL;
+            $message .= '[JSWARNS] ' . implode(PHP_EOL, $jsWarns) . PHP_EOL . PHP_EOL;
         }
 
         if ($jsLogs) {
-            $message .= '[JSLOGS] ' . implode(PHP_EOL, $jsLogs) . PHP_EOL;
+            $message .= '[JSLOGS] ' . implode(PHP_EOL, $jsLogs) . PHP_EOL . PHP_EOL;
         }
 
         if ($debugBarDetails) {
-            $message .= PHP_EOL . '[DEBUG BAR INFO]' . PHP_EOL;
+            $message .= '[DEBUG BAR INFO]' . PHP_EOL;
             $message .= $debugBarDetails;
         }
 
