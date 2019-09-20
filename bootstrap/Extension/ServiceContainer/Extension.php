@@ -63,15 +63,17 @@ class Extension implements ExtensionInterface
             ->children()
                 ->arrayNode('screenshot')
                     ->children()
-                        ->scalarNode('directory')
-                            ->defaultNull()
-                        ->end()
-                        ->scalarNode('mode')
-                            ->defaultValue('html')
-                        ->end()
-                        ->scalarNode('autoClean')
-                            ->defaultValue(false)
-                        ->end()
+                        ->scalarNode('directory')->defaultNull()->end()
+                        ->scalarNode('mode')->defaultValue('html')->end()
+                        ->booleanNode('autoClean')->defaultValue(false)->end()
+                    ->end()
+                ->end()
+                ->arrayNode('trackJs')
+                    ->children()
+                        ->booleanNode('errors')->defaultValue(false)->end()
+                        ->booleanNode('warns')->defaultValue(false)->end()
+                        ->booleanNode('logs')->defaultValue(false)->end()
+                        ->scalarNode('trim')->defaultValue(false)->end()
                     ->end()
                 ->end()
                 /**
@@ -116,10 +118,16 @@ class Extension implements ExtensionInterface
         }
         $container->setParameter('genesis.failaid.config.siteFilters', $config['siteFilters']);
 
+        if (! isset($config['trackJs'])) {
+            $config['trackJs'] = [];
+        }
+        $container->setParameter('genesis.failaid.config.trackJs', $config['trackJs']);
+
         $definition = new Definition(Initializer::class, [
             '%genesis.failaid.config.screenshot%',
             '%genesis.failaid.config.siteFilters%',
             '%genesis.failaid.config.debugBarSelectors%',
+            '%genesis.failaid.config.trackJs%',
         ]);
         $definition->addTag(ContextExtension::INITIALIZER_TAG);
         $container->setDefinition(self::CONTEXT_INITIALISER, $definition);

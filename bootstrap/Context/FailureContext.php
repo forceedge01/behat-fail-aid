@@ -87,6 +87,11 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     private static $states = [];
 
     /**
+     * @var string
+     */
+    private static $currentUrl;
+
+    /**
      * Initializes context.
      *
      * Every scenario gets its own context instance.
@@ -104,11 +109,13 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      * @param array $screenshot
      * @param array $siteFilters
      * @param array $debugBarSelectors
+     * @param mixed $trackJs
      */
     public function setConfig(
         array $screenshot = [],
         array $siteFilters = [],
-        array $debugBarSelectors = []
+        array $debugBarSelectors = [],
+        array $trackJs = ['errors' => false, 'logs' => false, 'warns' => false, 'trim' => false]
     ) {
         $this->siteFilters = $siteFilters;
         $this->debugBarSelectors = $debugBarSelectors;
@@ -124,6 +131,8 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         if (isset($screenshot['autoClean'])) {
             $this->screenshotAutoClean = $screenshot['autoClean'];
         }
+
+        $this->trackJs = $trackJs;
     }
 
     /**
@@ -251,6 +260,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         if ($scope->getTestResult()->getResultCode() === TestResult::FAILED) {
             try {
                 $message = null;
+
                 // To get away from appending exception details multiple times in one lifecycle
                 // of a test suite - we need to make sure the exception thrown is different
                 // from the previous one before working with it. This happens because each scenario
@@ -301,6 +311,47 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         }
     }
 
+    /**
+     * @param Mink $mink
+     *
+     * @return array
+     */
+    private function getJSErrors(Mink $mink)
+    {
+        return $mink->getSession()->evaluateScript('return window.jsErrors');
+    }
+
+    /**
+     * @param Mink $mink
+     *
+     * @return array
+     */
+    private function getJSLogs(Mink $mink)
+    {
+        return $mink->getSession()->evaluateScript('return window.jsLogs');
+    }
+
+    /**
+     * @param Mink $mink
+     *
+     * @return array
+     */
+    private function getJSWarns(Mink $mink)
+    {
+        return $mink->getSession()->evaluateScript('return window.jsWarns');
+    }
+
+    /**
+     * @param Session         $session
+     * @param DocumentElement $page
+     * @param DriverInterface $driver
+     * @param array           $debugBarSelectors
+     * @param string          $featureFile
+     * @param string          $exceptionFile
+     * @param string          $screenshotDir
+     *
+     * @return string
+     */
     private function gatherFacts(
         Session $session,
         DocumentElement $page,
@@ -352,6 +403,30 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
             $debugBarDetails = 'Unable to capture debug bar details: ' . $e->getMessage();
         }
 
+        $jsErrors = [];
+        if (isset($this->trackJs['errors']) && $this->trackJs['errors']) {
+            $jsErrors = $this->getJSErrors($this->getMink());
+            if(isset($this->trackJs['trim']) && $this->trackJs['trim']) {
+                $jsErrors = $this->trimArrayMessages($jsErrors, $this->trackJs['trim']);
+            }
+        }
+
+        $jsWarns = [];
+        if (isset($this->trackJs['warns']) && $this->trackJs['warns']) {
+            $jsWarns = $this->getJSWarns($this->getMink());
+            if(isset($this->trackJs['trim']) && $this->trackJs['trim']) {
+                $jsWarns = $this->trimArrayMessages($jsWarns, $this->trackJs['trim']);
+            }
+        }
+
+        $jsLogs = [];
+        if (isset($this->trackJs['logs']) && $this->trackJs['logs']) {
+            $jsLogs = $this->getJSLogs($this->getMink());
+            if(isset($this->trackJs['trim']) && $this->trackJs['trim']) {
+                $jsLogs = $this->trimArrayMessages($jsLogs, $this->trackJs['trim']);
+            }
+        }
+
         $message = $this->getExceptionDetails(
             $currentUrl,
             $statusCode,
@@ -359,12 +434,33 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
             $exceptionFile,
             $screenshotPath,
             $debugBarDetails,
+            $jsErrors,
+            $jsLogs,
+            $jsWarns,
             get_class($driver)
         );
 
         return $message;
     }
 
+    /**
+     * @param array $messages
+     * @param int   $length
+     *
+     * @return array
+     */
+    private function trimArrayMessages(array $messages, $length)
+    {
+        array_walk($messages, function(&$msg) use ($length) {
+            $msg = substr($msg, 0, $length);
+        });
+
+        return $messages;
+    }
+
+    /**
+     * @param Mink $mink
+     */
     public function setMink(Mink $mink)
     {
         $this->mink = $mink;
@@ -372,6 +468,9 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         return $this;
     }
 
+    /**
+     * @param array $parameters
+     */
     public function setMinkParameters(array $parameters)
     {
         $this->minkParameters = $parameters;
@@ -379,11 +478,17 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         return $this;
     }
 
+    /**
+     * @return Mink
+     */
     public function getMink()
     {
         return $this->mink;
     }
 
+    /**
+     * @return array
+     */
     public function getMinkParameters()
     {
         return $this->minkParameters;
@@ -529,7 +634,10 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      * @param string $contextFile
      * @param string $screenshotPath
      * @param string $driver
+     * @param string $jsErrors
      * @param mixed  $debugBarDetails
+     * @param mixed  $jsLogs
+     * @param mixed  $jsWarns
      *
      * @return string
      */
@@ -540,6 +648,9 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         $contextFile,
         $screenshotPath,
         $debugBarDetails,
+        $jsErrors,
+        $jsLogs,
+        $jsWarns,
         $driver
     ) {
         $message = PHP_EOL . PHP_EOL;
@@ -550,6 +661,18 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         $message .= '[SCREENSHOT] ' . $screenshotPath . PHP_EOL;
         $message .= '[DRIVER] ' . $driver . PHP_EOL;
         $message .= '[RERUN] ' . './vendor/bin/behat ' . $featureFile . PHP_EOL;
+
+        if ($jsErrors) {
+            $message .= '[JSERRORS] ' . implode(PHP_EOL, $jsErrors) . PHP_EOL;
+        }
+
+        if ($jsWarns) {
+            $message .= '[JSWARNS] ' . implode(PHP_EOL, $jsWarns) . PHP_EOL;
+        }
+
+        if ($jsLogs) {
+            $message .= '[JSLOGS] ' . implode(PHP_EOL, $jsLogs) . PHP_EOL;
+        }
 
         if ($debugBarDetails) {
             $message .= PHP_EOL . '[DEBUG BAR INFO]' . PHP_EOL;

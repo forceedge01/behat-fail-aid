@@ -95,6 +95,53 @@ siteFilters option:
 
 Applied on the content of a html screenshot. Useful when working with relative urls for assets.
 
+Tracking js errors/logs:
+------------------------
+
+You can easily track JavaScript activity on the page whenever a fail occurs. Place the following snippet in the head section of your application (make sure its global):
+
+```js
+<script type="text/javascript">
+  window.jsErrors = [];
+  window.jsWarns = [];
+  window.jsLogs = [];
+  window.onerror = function(error, url, line) {
+      window.jsErrors.push('[Uncaught error]: ' + error + '; Line: ' + line);
+  };
+
+  var _privateLog = console.log;
+  console.error = function(type, code, errorMsg) {
+    window.jsErrors.push('[Console error]: ' + errorMsg);
+    _privateLog.apply(console, arguments);
+  }
+
+  console.warn = function(type, code, errorMsg) {
+    window.jsWarns.push('[Console warn]: ' + errorMsg);
+    _privateLog.apply(console, arguments);
+  }
+
+  console.log = function(type, code, errorMsg) {
+    window.jsLogs.push('[Console log]: ' + errorMsg);
+    _privateLog.apply(console, arguments);
+  }
+</script>
+```
+Your original debugging messages will still appear in your console.
+
+
+```gherkin
+#behat.yml
+...
+- FailAid\Extension:
+    trackJs:
+      errors: true
+      warns: true
+      logs: true
+      trim: 1000
+```
+
+When errors is enabled, any intended console.error calls and js exceptions will be recorded and displayed as part of the failure. Trim is applied on messages to shorten to the specified length.
+
 debugBarSelectors option:
 -------------------------
 
