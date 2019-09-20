@@ -34,7 +34,7 @@ Major: Properly integrate extension with behat.
 
 Minor: Feature to fetch js logs and exceptions.
 
-Patch: Fix failing unit tests.
+Patch: Allow drivers other than selenium2 to take screenshots in png format as well.
 
 Installation:
 -------------
