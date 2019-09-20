@@ -32,9 +32,9 @@ Whats new:
 
 Major: Properly integrate extension with behat.
 
-Minor: Detect when the page has no content and respond with a catered message.
+Minor: Feature to fetch js logs and exceptions.
 
-Patch: If working with state debugging, don't rely on mink extension.
+Patch: Fix failing unit tests.
 
 Installation:
 -------------
