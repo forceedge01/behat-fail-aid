@@ -21,6 +21,7 @@ use Behat\Gherkin\Node\StepNode;
 use Behat\Mink\Driver\DriverInterface;
 use Behat\Mink\Driver\Selenium2Driver;
 use Behat\Mink\Element\DocumentElement;
+use Behat\Mink\Element\Element;
 use Behat\Mink\Element\ElementInterface;
 use Behat\Mink\Mink;
 use Behat\Mink\Session;
@@ -202,6 +203,66 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         self::assertNull($result);
     }
 
+    public function testTakeScreenshotAfterFailedStepPageEmpty()
+    {
+        $featureFile = 'my/example/scenarios.feature';
+        $exceptionMessage = 'something went wrong';
+        $currentUrl = 'http://site.dev/login';
+        $statusCode = 200;
+
+        $scope = $this->getAfterStepScopeWithMockedParams();
+        $scope->getTestResult()->expects($this->once())
+            ->method('getResultCode')
+            ->willReturn(TestResult::FAILED);
+        $scope->getTestResult()->expects($this->atLeastOnce())
+            ->method('getException')
+            ->willReturn(new Exception($exceptionMessage));
+        $scope->getFeature()->expects($this->atLeastOnce())
+            ->method('getFile')
+            ->willReturn($featureFile);
+
+        $minkMock = function () use ($currentUrl, $statusCode) {
+            $pageMock = $this->getMockBuilder(DocumentElement::class)
+                ->disableOriginalConstructor()
+                ->getMock();
+            $pageMock->expects($this->atLeastOnce())
+                ->method('getOuterHtml')
+                ->will($this->throwException(new \WebDriver\Exception\NoSuchElement('No html found.')));
+            $driverMock = $this->getMockBuilder(DriverInterface::class)
+                ->disableOriginalConstructor()
+                ->getMock();
+
+            $sessionMock = $this->getMockBuilder(Session::class)
+                ->disableOriginalConstructor()
+                ->getMock();
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getPage')
+                ->willReturn($pageMock);
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getDriver')
+                ->willReturn($driverMock);
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getCurrentUrl')
+                ->willReturn($currentUrl);
+            $sessionMock->expects($this->atLeastOnce())
+                ->method('getStatusCode')
+                ->willReturn($statusCode);
+
+            $minkMock = $this->getMockBuilder(Mink::class)->getMock();
+            $minkMock->expects($this->atLeastOnce())
+                ->method('getSession')
+                ->willReturn($sessionMock);
+
+            return $minkMock;
+        };
+
+        $result = $this->testObject
+            ->setMink($minkMock())
+            ->takeScreenShotAfterFailedStep($scope);
+
+        self::assertContains('The page is blank, is the driver/browser ready to receive the request?', $result);
+    }
+
     public function testTakeScreenshotAfterFailedStepFailedBasic()
     {
         $featureFile = 'my/example/scenarios.feature';
@@ -226,7 +287,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
                 ->disableOriginalConstructor()
                 ->getMock();
             $pageMock->expects($this->atLeastOnce())
-                ->method('getHtml')
+                ->method('getOuterHtml')
                 ->willReturn($html);
             $driverMock = $this->getMockBuilder(DriverInterface::class)
                 ->disableOriginalConstructor()
@@ -301,9 +362,9 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
                 ->disableOriginalConstructor()
                 ->getMock();
             $pageMock->expects($this->atLeastOnce())
-                ->method('getHtml')
+                ->method('getOuterHtml')
                 ->willReturn($html);
-            $pageMock->expects($this->at(2))
+            $pageMock->expects($this->at(3))
                 ->method('find')
                 ->with('css', '#debugBar .message')
                 ->willReturn($elementMock);
@@ -383,7 +444,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
                 ->disableOriginalConstructor()
                 ->getMock();
             $pageMock->expects($this->atLeastOnce())
-                ->method('getHtml')
+                ->method('getOuterHtml')
                 ->willReturn($html);
             $driverMock = $this->getMockBuilder(DriverInterface::class)
                 ->disableOriginalConstructor()
@@ -439,9 +500,9 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
     public function testTakeScreenshotNoHtml()
     {
         $filename = '/file/name.png';
-        $page = $this->getMockBuilder(ElementInterface::class)->getMock();
+        $page = $this->getMockBuilder(Element::class)->disableOriginalConstructor()->getMock();
         $page->expects($this->once())
-            ->method('getHtml')
+            ->method('getOuterHtml')
             ->will($this->throwException(new Exception()));
         $driver = $this->getMockBuilder(DriverInterface::class)->getMock();
 
@@ -451,9 +512,9 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
     public function testTakeScreenshotWithHtmlAndDefaultScreenshotMode()
     {
         $filename = '/file/name-';
-        $page = $this->getMockBuilder(ElementInterface::class)->getMock();
+        $page = $this->getMockBuilder(Element::class)->disableOriginalConstructor()->getMock();
         $page->expects($this->any())
-            ->method('getHtml')
+            ->method('getOuterHtml')
             ->willReturn('<html></html>');
         $driver = $this->getMockBuilder(Selenium2Driver::class)->getMock();
 
@@ -465,9 +526,9 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
     public function testTakeScreenshotWithHtmlAndHtmlScreenshotMode()
     {
         $filename = '/file/name-';
-        $page = $this->getMockBuilder(ElementInterface::class)->getMock();
+        $page = $this->getMockBuilder(Element::class)->disableOriginalConstructor()->getMock();
         $page->expects($this->any())
-            ->method('getHtml')
+            ->method('getOuterHtml')
             ->willReturn('<html></html>');
         $driver = $this->getMockBuilder(DriverInterface::class)->getMock();
 
@@ -600,6 +661,17 @@ Info: clearly not equal.';
 ';
         $stateDetails = '  [USER EMAIL] its.inevitable@hotmail.com';
 
+        $jsErrors = [
+            '[Console error]: Undefined var "abc"',
+            '[Console error]: Undefined var "xyz"'
+        ];
+        $jsWarns = [
+            '[Console warn]: Could not load data in.'
+        ];
+        $jsLogs = [
+            '[Console log]: OOps left debug in.'
+        ];
+
         $result = $this->callProtectedMethod('getExceptionDetails', [
             $currentUrl,
             $statusCode,
@@ -607,8 +679,10 @@ Info: clearly not equal.';
             $contextFile,
             $screenshotPath,
             $debugBarDetails,
-            DriverInterface::class,
-            $stateDetails
+            $jsErrors,
+            $jsLogs,
+            $jsWarns,
+            DriverInterface::class
         ]);
 
         self::assertEquals('
@@ -621,12 +695,16 @@ Info: clearly not equal.';
 [DRIVER] Behat\Mink\Driver\DriverInterface
 [RERUN] ./vendor/bin/behat features/login.feature
 
+[JSERRORS] [Console error]: Undefined var "abc"
+[Console error]: Undefined var "xyz"
+
+[JSWARNS] [Console warn]: Could not load data in.
+
+[JSLOGS] [Console log]: OOps left debug in.
+
 [DEBUG BAR INFO]
   [MESSAGE] Page not found.
   [QUERY] Element "#debug .query" Not Found.
-
-[STATE]
-  [USER EMAIL] its.inevitable@hotmail.com
 ', $result);
     }
 
