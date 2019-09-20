@@ -23,6 +23,7 @@ use Behat\Mink\Driver\Selenium2Driver;
 use Behat\Mink\Element\DocumentElement;
 use Behat\Mink\Element\Element;
 use Behat\Mink\Element\ElementInterface;
+use Behat\Mink\Exception\DriverException;
 use Behat\Mink\Mink;
 use Behat\Mink\Session;
 use Behat\Testwork\Environment\Environment;
@@ -364,7 +365,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
             $pageMock->expects($this->atLeastOnce())
                 ->method('getOuterHtml')
                 ->willReturn($html);
-            $pageMock->expects($this->at(3))
+            $pageMock->expects($this->at(2))
                 ->method('find')
                 ->with('css', '#debugBar .message')
                 ->willReturn($elementMock);
@@ -509,7 +510,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         $this->testObject->takeScreenshot($filename, $page, $driver);
     }
 
-    public function testTakeScreenshotWithHtmlAndDefaultScreenshotMode()
+    public function testTakeScreenshotWithHtmlAndDefaultScreenshotModeWithSeleniumDriver()
     {
         $filename = '/file/name-';
         $page = $this->getMockBuilder(Element::class)->disableOriginalConstructor()->getMock();
@@ -518,9 +519,29 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
             ->willReturn('<html></html>');
         $driver = $this->getMockBuilder(Selenium2Driver::class)->getMock();
 
+        $this->setPrivatePropertyValue('screenshotMode', 'default');
         $result = $this->testObject->takeScreenshot($filename, $page, $driver);
 
         self::assertEquals('png', pathinfo($result, PATHINFO_EXTENSION));
+    }
+
+    public function testTakeScreenshotWithHtmlAndDefaultScreenshotModeWithNonSeleniumDriver()
+    {
+        $filename = '/file/name-';
+        $page = $this->getMockBuilder(Element::class)->disableOriginalConstructor()->getMock();
+        $page->expects($this->any())
+            ->method('getOuterHtml')
+            ->willReturn('<html></html>');
+        $driver = $this->getMockBuilder(DriverInterface::class)->getMock();
+        $driver
+            ->expects($this->once())
+            ->method('getScreenshot')
+            ->will($this->throwException(new DriverException('Not supported.')));
+
+        $this->setPrivatePropertyValue('screenshotMode', 'default');
+        $result = $this->testObject->takeScreenshot($filename, $page, $driver);
+
+        self::assertEquals('html', pathinfo($result, PATHINFO_EXTENSION));
     }
 
     public function testTakeScreenshotWithHtmlAndHtmlScreenshotMode()
@@ -534,9 +555,25 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
 
         $this->setPrivatePropertyValue('screenshotMode', FailureContext::SCREENSHOT_MODE_DEFAULT);
 
+        $this->setPrivatePropertyValue('screenshotMode', 'html');
         $result = $this->testObject->takeScreenshot($filename, $page, $driver);
 
         self::assertEquals('html', pathinfo($result, PATHINFO_EXTENSION));
+    }
+
+    public function testTakeScreenshotWithHtmlAndPNGScreenshotMode()
+    {
+        $filename = '/file/name-';
+        $page = $this->getMockBuilder(Element::class)->disableOriginalConstructor()->getMock();
+        $page->expects($this->any())
+            ->method('getOuterHtml')
+            ->willReturn('<html></html>');
+        $driver = $this->getMockBuilder(Selenium2Driver::class)->getMock();
+
+        $this->setPrivatePropertyValue('screenshotMode', 'png');
+        $result = $this->testObject->takeScreenshot($filename, $page, $driver);
+
+        self::assertEquals('png', pathinfo($result, PATHINFO_EXTENSION));
     }
 
     public function testProvideDiff()
