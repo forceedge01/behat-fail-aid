@@ -14,11 +14,13 @@ class Initializer implements ContextInitializer
     public function __construct(
         array $screenshot,
         array $siteFilters = [],
-        array $debugBarSelectors = []
+        array $debugBarSelectors = [],
+        array $trackJs = []
     ) {
         $this->screenshot = $screenshot;
         $this->siteFilters = $siteFilters;
         $this->debugBarSelectors = $debugBarSelectors;
+        $this->trackJs = $trackJs;
     }
 
     /**
@@ -30,7 +32,8 @@ class Initializer implements ContextInitializer
             $context->setConfig(
                 $this->screenshot,
                 $this->siteFilters,
-                $this->debugBarSelectors
+                $this->debugBarSelectors,
+                $this->trackJs
             );
         }
     }
