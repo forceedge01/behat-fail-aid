@@ -75,7 +75,7 @@ screenshot options:
 Override default screenshot path. Default folder is provided by `sys_get_temp_dir()` function. Can be a relative path.
 
 ### mode (string): 
-default: Selenium2 enabled drivers will produce a png, anything else will produce html screenshots.
+default: Drivers will produce a png where supported, html otherwise.
 html: All drivers will produce html screenshots, useful for interrogating runtime code.
 
 ### autoClean (bool):
