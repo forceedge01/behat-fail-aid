@@ -76,7 +76,10 @@ Override default screenshot path. Default folder is provided by `sys_get_temp_di
 
 ### mode (string): 
 default: Drivers will produce a png where supported, html otherwise.
+
 html: All drivers will produce html screenshots, useful for interrogating runtime code.
+
+png: All drivers will produce png screenshots, or die trying.
 
 ### autoClean (bool):
 Clean up the directory before the test suite runs.
