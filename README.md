@@ -34,7 +34,7 @@ Major: Properly integrate extension with behat.
 
 Minor: Feature to fetch js logs and exceptions.
 
-Patch: Fix failing unit tests.
+Patch: Allow drivers other than selenium2 to take screenshots in png format as well.
 
 Installation:
 -------------
@@ -75,7 +75,7 @@ screenshot options:
 Override default screenshot path. Default folder is provided by `sys_get_temp_dir()` function. Can be a relative path.
 
 ### mode (string): 
-default: Selenium2 enabled drivers will produce a png, anything else will produce html screenshots.
+default: Drivers will produce a png where supported, html otherwise.
 html: All drivers will produce html screenshots, useful for interrogating runtime code.
 
 ### autoClean (bool):

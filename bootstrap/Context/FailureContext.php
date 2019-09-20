@@ -6,7 +6,6 @@ use Behat\Behat\Context\Context;
 use Behat\Behat\Hook\Scope\AfterStepScope;
 use Behat\MinkExtension\Context\MinkAwareContext;
 use Behat\Mink\Driver\DriverInterface;
-use Behat\Mink\Driver\Selenium2Driver;
 use Behat\Mink\Element\DocumentElement;
 use Behat\Mink\Element\ElementInterface;
 use Behat\Mink\Exception\DriverException;
@@ -28,6 +27,8 @@ use Symfony\Component\Console\Input\ArgvInput;
 class FailureContext implements MinkAwareContext, FailStateInterface, ScreenshotInterface, DebugBarInterface
 {
     const SCREENSHOT_MODE_DEFAULT = 'default';
+
+    const SCREENSHOT_MODE_PNG = 'png';
 
     const SCREENSHOT_MODE_HTML = 'html';
 
@@ -512,6 +513,11 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     }
 
     /**
+     * Screenshot based on mode defined. Modes are:
+     * - default: png if possible, html otherwise. Suitable for running packs with both types drivers enabled.
+     * - html: all in html.
+     * - png: all in png, Throws exception if unable to.
+     *
      * @param string $filename The filename for the screenshot.
      * @param Page   $page     The page object.
      * @param Driver $driver   The driver used to run the test.
@@ -526,13 +532,29 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
 
         $content = null;
         $filename .= microtime(true);
-        // If not selenium driver, extract the html and put in file.
-        if ($this->screenshotMode === self::SCREENSHOT_MODE_HTML || ! ($driver instanceof Selenium2Driver)) {
-            $filename .= '.html';
-            $content = $this->applySiteSpecificFilters($page->getOuterHtml());
-        } else {
-            $filename .= '.png';
-            $content = $driver->getScreenshot();
+
+        switch($this->screenshotMode) {
+            case self::SCREENSHOT_MODE_DEFAULT:
+                try {
+                    $filename .= '.png';
+                    $content = $driver->getScreenshot();
+                } catch (DriverException $e) {
+                    $filename .= '.html';
+                    $content = $this->applySiteSpecificFilters($page->getOuterHtml());
+                }
+                break;
+            case self::SCREENSHOT_MODE_HTML:
+                $filename .= '.html';
+                $content = $this->applySiteSpecificFilters($page->getOuterHtml());
+                break;
+            case self::SCREENSHOT_MODE_PNG:
+                try {
+                    $filename .= '.png';
+                    $content = $driver->getScreenshot();
+                } catch (DriverException $e) {
+                    throw new Exception('unable to produce screenshot: ' . $e->getMessage());
+                }
+                break;
         }
 
         file_put_contents($filename, $content);
