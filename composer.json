@@ -1,6 +1,6 @@
 {
   "name": "genesis/behat-fail-aid",
-  "description": "Get more out of your test suite by getting it to work with you when tests fail. Works with Goutte and MinkExtension (Selenium2Driver)",
+  "description": "Get more out of your test suite by getting it to work with you when tests fail. Works with Goutte and MinkExtension.",
   "keywords": ["behat", "error", "fail", "behat-fail", "behat-error", "behat-exception"],
   "authors": [
     {
