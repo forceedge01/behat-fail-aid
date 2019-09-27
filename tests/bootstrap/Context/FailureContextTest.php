@@ -703,7 +703,7 @@ Info: clearly not equal.';
             '[Console error]: Undefined var "xyz"'
         ];
         $jsWarns = [
-            '[Console warn]: Could not load data in.'
+            '[Console warn]: Could not load data in.',
         ];
         $jsLogs = [
             '[Console log]: OOps left debug in.'
@@ -733,6 +733,7 @@ Info: clearly not equal.';
 [RERUN] ./vendor/bin/behat features/login.feature
 
 [JSERRORS] [Console error]: Undefined var "abc"
+------
 [Console error]: Undefined var "xyz"
 
 [JSWARNS] [Console warn]: Could not load data in.
