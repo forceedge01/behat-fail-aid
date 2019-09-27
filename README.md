@@ -105,25 +105,25 @@ You can easily track JavaScript activity on the page whenever a fail occurs. Pla
 
 ```js
 <script type="text/javascript">
-  window.jsErrors = window.jsWarns = window.jsLogs = [];
+  window.jsErrors = []; window.jsWarns = []; window.jsLogs = [];
   window.onerror = function(error, url, line) {
       window.jsErrors.push('[Uncaught error]: ' + error + '; Line: ' + line);
   };
 
   if (!console) var console = {};
   var _privateError = console.error;
-  console.error = function(type, code, errorMsg) {
-    window.jsErrors.push('[Console error]: ' + errorMsg); _privateError.apply(console, arguments);
+  console.error = function() {
+    window.jsErrors.push('[Console error]: ' + JSON.stringify(arguments)); _privateError.apply(console, arguments);
   }
 
   var _privateWarn = console.warn;
-  console.warn = function(type, code, errorMsg) {
-    window.jsWarns.push('[Console warn]: ' + errorMsg); _privateWarn.apply(console, arguments);
+  console.warn = function() {
+    window.jsWarns.push('[Console warn]: ' + JSON.stringify(arguments)); _privateWarn.apply(console, arguments);
   }
 
   var _privateLog = console.log;
-  console.log = function(type, code, errorMsg) {
-    window.jsLogs.push('[Console log]: ' + errorMsg); _privateLog.apply(console, arguments);
+  console.log = function() {
+    window.jsLogs.push('[Console log]: ' + JSON.stringify(arguments)); _privateLog.apply(console, arguments);
   }
 </script>
 ```
