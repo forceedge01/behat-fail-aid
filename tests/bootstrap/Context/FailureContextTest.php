@@ -441,12 +441,12 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         self::assertContains('[DRIVER] Mock_DriverInterface_', $result);
         self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature', $result);
         self::assertContains('[DEBUG BAR INFO]', $result);
-        // self::assertContains('[JSERRORS] [Console error]: first error', $result);
-        // self::assertContains('[Console error]: second error', $result);
-        // self::assertContains('[JSWARNS] [Console warn]: first warn', $result);
-        // self::assertContains('[Console warn]: second warn', $result);
-        // self::assertContains('[JSLOGS] [Console log]: first log', $result);
-        // self::assertContains('[Console log]: second log', $result);
+        self::assertContains('[JSERRORS] first error', $result);
+        self::assertContains('second error', $result);
+        self::assertContains('[JSWARNS] first warn', $result);
+        self::assertContains('second warn', $result);
+        self::assertContains('[JSLOGS] first log', $result);
+        self::assertContains('second log', $result);
         self::assertContains('  [MESSAGE] A registered service was not found.', $result);
         self::assertContains('  [QUERIES] Element "#debugBar .queries" Not Found.', $result);
         self::assertNotContains('[STATE]', $result);
