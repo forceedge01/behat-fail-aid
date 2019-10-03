@@ -309,6 +309,9 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
             $sessionMock->expects($this->atLeastOnce())
                 ->method('getStatusCode')
                 ->willReturn($statusCode);
+            $sessionMock->expects($this->any())
+                ->method('evaluateScript')
+                ->will($this->throwException(New DriverException('Unsupported action')));
 
             $minkMock = $this->getMockBuilder(Mink::class)->getMock();
             $minkMock->expects($this->atLeastOnce())
@@ -317,6 +320,13 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
 
             return $minkMock;
         };
+
+        $this->setPrivatePropertyValue('trackJs', [
+            'errors' => true,
+            'logs' => true,
+            'warns' => true,
+            'trim' => false
+        ]);
 
         $result = $this->testObject
             ->setMink($minkMock())
@@ -329,6 +339,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         self::assertRegExp('/\[SCREENSHOT\] file:\/\/\/.+/', $result);
         self::assertContains('[DRIVER] Mock_DriverInterface_', $result);
         self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature', $result);
+        self::assertContains('[JSERRORS] Unable to fetch js errors: Unsupported action', $result);
         self::assertNotContains('[DEBUG BAR INFO]', $result);
         self::assertNotContains('[STATE]', $result);
     }
@@ -389,6 +400,15 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
                 ->method('getStatusCode')
                 ->willReturn($statusCode);
 
+            $sessionMock->expects($this->any())
+                ->method('evaluateScript')
+                ->withConsecutive(['return window.jsErrors'], ['return window.jsWarns'], ['return window.jsLogs'])
+                ->willReturnOnConsecutiveCalls(
+                    ['first error', 'second error'],
+                    ['first warn', 'second warn'],
+                    ['first log', 'second log']
+                );
+
             $minkMock = $this->getMockBuilder(Mink::class)->getMock();
             $minkMock->expects($this->atLeastOnce())
                 ->method('getSession')
@@ -400,6 +420,13 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         $this->setPrivatePropertyValue('debugBarSelectors', [
             'message' => '#debugBar .message',
             'queries' => '#debugBar .queries'
+        ]);
+
+        $this->setPrivatePropertyValue('trackJs', [
+            'errors' => true,
+            'logs' => true,
+            'warns' => true,
+            'trim' => false
         ]);
 
         $result = $this->testObject
@@ -414,6 +441,12 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         self::assertContains('[DRIVER] Mock_DriverInterface_', $result);
         self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature', $result);
         self::assertContains('[DEBUG BAR INFO]', $result);
+        self::assertContains('[JSERRORS] first error', $result);
+        self::assertContains('second error', $result);
+        self::assertContains('[JSWARNS] first warn', $result);
+        self::assertContains('second warn', $result);
+        self::assertContains('[JSLOGS] first log', $result);
+        self::assertContains('second log', $result);
         self::assertContains('  [MESSAGE] A registered service was not found.', $result);
         self::assertContains('  [QUERIES] Element "#debugBar .queries" Not Found.', $result);
         self::assertNotContains('[STATE]', $result);

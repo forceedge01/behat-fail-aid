@@ -405,27 +405,37 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         }
 
         $jsErrors = [];
-        if (isset($this->trackJs['errors']) && $this->trackJs['errors']) {
-            $jsErrors = $this->getJSErrors($this->getMink());
-            if(isset($this->trackJs['trim']) && $this->trackJs['trim']) {
-                $jsErrors = $this->trimArrayMessages($jsErrors, $this->trackJs['trim']);
-            }
-        }
-
         $jsWarns = [];
-        if (isset($this->trackJs['warns']) && $this->trackJs['warns']) {
-            $jsWarns = $this->getJSWarns($this->getMink());
-            if(isset($this->trackJs['trim']) && $this->trackJs['trim']) {
-                $jsWarns = $this->trimArrayMessages($jsWarns, $this->trackJs['trim']);
+        $jsLogs = [];
+        try {
+            if (isset($this->trackJs['errors']) && $this->trackJs['errors']) {
+                $jsErrors = $this->getJSErrors($this->getMink());
             }
+        } catch (DriverException $e) {
+            $jsErrors = ['Unable to fetch js errors: ' . $e->getMessage()];
         }
 
-        $jsLogs = [];
-        if (isset($this->trackJs['logs']) && $this->trackJs['logs']) {
-            $jsLogs = $this->getJSLogs($this->getMink());
-            if(isset($this->trackJs['trim']) && $this->trackJs['trim']) {
-                $jsLogs = $this->trimArrayMessages($jsLogs, $this->trackJs['trim']);
+        try {
+            if (isset($this->trackJs['warns']) && $this->trackJs['warns']) {
+                $jsWarns = $this->getJSWarns($this->getMink());
             }
+        } catch (DriverException $e) {
+            $jsWarns = ['Unable to fetch js warns: ' . $e->getMessage()];
+        }
+
+        try {
+            if (isset($this->trackJs['logs']) && $this->trackJs['logs']) {
+                $jsLogs = $this->getJSLogs($this->getMink());
+            }
+        } catch (DriverException $e) {
+            $jsLogs = ['Unable to fetch js logs: ' . $e->getMessage()];
+        }
+
+        if(isset($this->trackJs['trim']) && $this->trackJs['trim']) {
+            $trimLength = $this->trackJs['trim'];
+            $jsErrors = $this->trimArrayMessages($jsErrors, $trimLength);
+            $jsWarns = $this->trimArrayMessages($jsWarns, $trimLength);
+            $jsLogs = $this->trimArrayMessages($jsLogs, $trimLength);
         }
 
         $message = $this->getExceptionDetails(
