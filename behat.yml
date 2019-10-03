@@ -17,6 +17,11 @@ default:
       siteFilters:
         '/images/': 'http://dev.environment/images/'
         '/js/': 'http://dev.environment/js/'
+      trackJs:
+        errors: true
+        warns: true
+        logs: true
+        trim: 1000
     Cjm\Behat\LocalWebserverExtension:
       docroot: '%paths.base%/app'
     Behat\MinkExtension:

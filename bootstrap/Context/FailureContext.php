@@ -432,9 +432,10 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         }
 
         if(isset($this->trackJs['trim']) && $this->trackJs['trim']) {
-            $jsErrors = $this->trimArrayMessages($jsErrors, $this->trackJs['trim']);
-            $jsWarns = $this->trimArrayMessages($jsWarns, $this->trackJs['trim']);
-            $jsLogs = $this->trimArrayMessages($jsLogs, $this->trackJs['trim']);
+            $trimLength = $this->trackJs['trim'];
+            $jsErrors = $this->trimArrayMessages($jsErrors, $trimLength);
+            $jsWarns = $this->trimArrayMessages($jsWarns, $trimLength);
+            $jsLogs = $this->trimArrayMessages($jsLogs, $trimLength);
         }
 
         $message = $this->getExceptionDetails(
