@@ -851,25 +851,25 @@
         },
         {
             "name": "symfony/dependency-injection",
-            "version": "v3.4.15",
+            "version": "v4.0.15",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/dependency-injection.git",
-                "reference": "09d7df7bf06c1393b6afc85875993cbdbdf897a0"
+                "reference": "36401d55d9be1fddd4e8be983b2a7e0b9a5f29ac"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/dependency-injection/zipball/09d7df7bf06c1393b6afc85875993cbdbdf897a0",
-                "reference": "09d7df7bf06c1393b6afc85875993cbdbdf897a0",
+                "url": "https://api.github.com/repos/symfony/dependency-injection/zipball/36401d55d9be1fddd4e8be983b2a7e0b9a5f29ac",
+                "reference": "36401d55d9be1fddd4e8be983b2a7e0b9a5f29ac",
                 "shasum": ""
             },
             "require": {
-                "php": "^5.5.9|>=7.0.8",
+                "php": "^7.1.3",
                 "psr/container": "^1.0"
             },
             "conflict": {
-                "symfony/config": "<3.3.7",
-                "symfony/finder": "<3.3",
+                "symfony/config": "<3.4",
+                "symfony/finder": "<3.4",
                 "symfony/proxy-manager-bridge": "<3.4",
                 "symfony/yaml": "<3.4"
             },
@@ -877,8 +877,8 @@
                 "psr/container-implementation": "1.0"
             },
             "require-dev": {
-                "symfony/config": "~3.3|~4.0",
-                "symfony/expression-language": "~2.8|~3.0|~4.0",
+                "symfony/config": "~3.4|~4.0",
+                "symfony/expression-language": "~3.4|~4.0",
                 "symfony/yaml": "~3.4|~4.0"
             },
             "suggest": {
@@ -891,7 +891,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "3.4-dev"
+                    "dev-master": "4.0-dev"
                 }
             },
             "autoload": {
@@ -918,7 +918,7 @@
             ],
             "description": "Symfony DependencyInjection Component",
             "homepage": "https://symfony.com",
-            "time": "2018-08-08T11:42:34+00:00"
+            "time": "2018-08-01T08:23:45+00:00"
         },
         {
             "name": "symfony/event-dispatcher",
@@ -2315,6 +2315,7 @@
                 "mock",
                 "xunit"
             ],
+            "abandoned": true,
             "time": "2015-10-02T06:51:40+00:00"
         },
         {
