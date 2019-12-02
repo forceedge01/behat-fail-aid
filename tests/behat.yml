@@ -1,0 +1,32 @@
+default:
+  suites:
+    generic-php55:
+      contexts:
+        - FeatureContext
+        - Behat\MinkExtension\Context\MinkContext
+        - FailAid\Context\FailureContext
+  extensions:
+    FailAid\Extension:
+      screenshot:
+        directory: ./features/failures
+        mode: default
+        autoClean: true
+      debugBarSelectors:
+        message: '#debugBar .message'
+        queries: '#debugBar .queries'
+      siteFilters:
+        '/images/': 'http://dev.environment/images/'
+        '/js/': 'http://dev.environment/js/'
+      trackJs:
+        errors: true
+        warns: true
+        logs: true
+        trim: 1000
+    Cjm\Behat\LocalWebserverExtension:
+      docroot: '%paths.base%/app'
+    Behat\MinkExtension:
+      default_session: goutte
+      base_url:  'http://localhost:8000/'
+      sessions:
+        goutte:
+          goutte: ~
