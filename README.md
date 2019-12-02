@@ -158,6 +158,18 @@ debugBarSelectors option:
 
 The above will go through each of the selector and find the element. If the element is found, it will display the text contained in the failure output. The debug bar details are gather after taking a screenshot of the page, so its safe to navigate out to another page if needs be. If you have to do this, have a look at the 'Advanced Integration' section for more information.
 
+defaultSession option:
+----------------------
+
+When you're using multiple sessions you can configure to use a particular session only with the fail aid extension.
+
+```gherkin
+...
+- FailAid\Extension:
+    defaultSession: mySession
+...
+```
+
 Recording states:
 -------------------------
 
@@ -228,7 +240,8 @@ class FeatureContext
               'autoClean' => false,
             ],
             'siteFilters' => [],
-            'debugBarSelectors' => []
+            'debugBarSelectors' => [],
+            'defaultSession' => 'mySession',
         ];
 
         $scope->getEnvironment()->registerContextClass(

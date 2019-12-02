@@ -76,6 +76,7 @@ class Extension implements ExtensionInterface
                         ->scalarNode('trim')->defaultValue(false)->end()
                     ->end()
                 ->end()
+                ->scalarNode('defaultSession')->defaultValue(null)->end()
                 /**
                  * DEPRECATED in favour of screenshot option, to be removed in next major version bump.
                  */
@@ -121,6 +122,7 @@ class Extension implements ExtensionInterface
         if (! isset($config['trackJs'])) {
             $config['trackJs'] = [];
         }
+        $container->setParameter('genesis.failaid.config.defaultSession', $config['defaultSession']);
         $container->setParameter('genesis.failaid.config.trackJs', $config['trackJs']);
 
         $definition = new Definition(Initializer::class, [
@@ -128,6 +130,7 @@ class Extension implements ExtensionInterface
             '%genesis.failaid.config.siteFilters%',
             '%genesis.failaid.config.debugBarSelectors%',
             '%genesis.failaid.config.trackJs%',
+            '%genesis.failaid.config.defaultSession%',
         ]);
         $definition->addTag(ContextExtension::INITIALIZER_TAG);
         $container->setDefinition(self::CONTEXT_INITIALISER, $definition);

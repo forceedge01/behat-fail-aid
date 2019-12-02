@@ -15,12 +15,14 @@ class Initializer implements ContextInitializer
         array $screenshot,
         array $siteFilters = [],
         array $debugBarSelectors = [],
-        array $trackJs = []
+        array $trackJs = [],
+        $defaultSession = null
     ) {
         $this->screenshot = $screenshot;
         $this->siteFilters = $siteFilters;
         $this->debugBarSelectors = $debugBarSelectors;
         $this->trackJs = $trackJs;
+        $this->defaultSession = $defaultSession;
     }
 
     /**
@@ -33,7 +35,8 @@ class Initializer implements ContextInitializer
                 $this->screenshot,
                 $this->siteFilters,
                 $this->debugBarSelectors,
-                $this->trackJs
+                $this->trackJs,
+                $this->defaultSession
             );
         }
     }

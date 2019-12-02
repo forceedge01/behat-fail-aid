@@ -85,6 +85,11 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     /**
      * @var string
      */
+    private $defaultSession;
+
+    /**
+     * @var string
+     */
     private static $exceptionHash;
 
     /**
@@ -111,12 +116,14 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      * @param array $siteFilters
      * @param array $debugBarSelectors
      * @param mixed $trackJs
+     * @param string $defaultSession
      */
     public function setConfig(
         array $screenshot = [],
         array $siteFilters = [],
         array $debugBarSelectors = [],
-        array $trackJs = ['errors' => false, 'logs' => false, 'warns' => false, 'trim' => false]
+        array $trackJs = ['errors' => false, 'logs' => false, 'warns' => false, 'trim' => false],
+        string $defaultSession = null
     ) {
         $this->siteFilters = $siteFilters;
         $this->debugBarSelectors = $debugBarSelectors;
@@ -133,6 +140,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
             $this->screenshotAutoClean = $screenshot['autoClean'];
         }
 
+        $this->defaultSession = $defaultSession;
         $this->trackJs = $trackJs;
     }
 
@@ -141,7 +149,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      */
     public function iTakeAScreenshot()
     {
-        $session = $this->getMink()->getSession();
+        $session = $this->getSession();
         $screenshotPath = $this->takeScreenshot(
             $this->screenshotDir,
             $session->getPage(),
@@ -156,7 +164,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      */
     public function iGatherFactsForTheCurrentState()
     {
-        $session = $this->getMink()->getSession();
+        $session = $this->getSession();
         $page = $session->getPage();
         $driver = $session->getDriver();
 
@@ -274,14 +282,14 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
 
                     $message = '';
                     try {
-                        $this->getMink()->getSession()->getPage()->getOuterHtml();
+                        $this->getSession()->getPage()->getOuterHtml();
                     } catch (\WebDriver\Exception\NoSuchElement $e) {
                         $message = PHP_EOL . PHP_EOL . 'The page is blank, is the driver/browser ready to receive the request?';
                     }
 
                     $mink = $this->getMink();
                     if ($mink) {
-                        $session = $this->getMink()->getSession();
+                        $session = $this->getSession();
                         $page = $session->getPage();
                         $driver = $session->getDriver();
 
@@ -310,6 +318,16 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
                 echo 'Error message: ' . $e->getMessage();
             }
         }
+    }
+
+    /**
+     * @param string $name
+     *
+     * @return Session
+     */
+    private function getSession($name = null)
+    {   
+        return $this->getMink()->getSession($name ? $name : $this->defaultSession);
     }
 
     /**
@@ -364,7 +382,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     ) {
         $message = null;
 
-        $session = $this->getMink()->getSession();
+        $session = $this->getSession();
         $page = $session->getPage();
         $driver = $session->getDriver();
 
