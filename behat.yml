@@ -24,9 +24,10 @@ default:
         trim: 1000
     Cjm\Behat\LocalWebserverExtension:
       docroot: '%paths.base%/app'
+      port: 8531
     Behat\MinkExtension:
       default_session: goutte
-      base_url:  'http://localhost:8000/'
+      base_url:  'http://localhost:8531/'
       sessions:
         goutte:
           goutte: ~
