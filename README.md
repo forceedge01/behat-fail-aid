@@ -32,7 +32,7 @@ Whats new:
 
 Major: Properly integrate extension with behat.
 
-Minor: Feature to fetch js logs and exceptions.
+Minor: Define size for screenshot.
 
 Patch: Import latest packages to fix security issues.
 
@@ -69,6 +69,7 @@ screenshot options:
         directory: /temp/failures/behat/screenshots/
         mode: default
         autoClean: false
+        size: 1444x1280
 ```
 
 ### directory (string):
@@ -83,6 +84,9 @@ png: All drivers will produce png screenshots, or die trying.
 
 ### autoClean (bool):
 Clean up the directory before the test suite runs.
+
+### Size (string):
+The size of the screenshot to be taken on failure. At present, does not reset the size of the window. May conflict with the maximiseWindow API.
 
 siteFilters option:
 --------------------
