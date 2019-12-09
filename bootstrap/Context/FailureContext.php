@@ -80,6 +80,11 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     /**
      * @var array
      */
+    private $screenshotSize = [];
+
+    /**
+     * @var array
+     */
     private $debugBarSelectors = [];
 
     /**
@@ -112,9 +117,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     }
 
     /**
-     * @param array $screenshot
-     * @param array $siteFilters
-     * @param array $debugBarSelectors
      * @param mixed $trackJs
      * @param string $defaultSession
      */
@@ -138,6 +140,10 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
 
         if (isset($screenshot['autoClean'])) {
             $this->screenshotAutoClean = $screenshot['autoClean'];
+        }
+
+        if (isset($screenshot['size'])) {
+            $this->screenshotSize = explode('x', $screenshot['size'], 2);
         }
 
         $this->defaultSession = $defaultSession;
@@ -181,10 +187,9 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
 
     /**
      * @BeforeSuite
-     * 
+     *
      * Load the config file again as the context params aren't available until the context is initialised.
      *
-     * @param mixed $arg1
      */
     public static function autoClean($arg1)
     {
@@ -218,7 +223,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     private static function getConfigFilePath()
     {
         $input = new ArgvInput();
-        $path = $input->getParameterOption(['-c', '--config'],  'behat.yml');
+        $path = $input->getParameterOption(['-c', '--config'], 'behat.yml');
         $basePath = '';
 
         // If the path provided isn't an absolute path, then find the folder it is in recursively.
@@ -326,12 +331,11 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      * @return Session
      */
     private function getSession($name = null)
-    {   
+    {
         return $this->getMink()->getSession($name ? $name : $this->defaultSession);
     }
 
     /**
-     * @param Mink $mink
      *
      * @return array
      */
@@ -341,7 +345,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     }
 
     /**
-     * @param Mink $mink
      *
      * @return array
      */
@@ -351,7 +354,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     }
 
     /**
-     * @param Mink $mink
      *
      * @return array
      */
@@ -361,10 +363,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     }
 
     /**
-     * @param Session         $session
-     * @param DocumentElement $page
-     * @param DriverInterface $driver
-     * @param array           $debugBarSelectors
      * @param string          $featureFile
      * @param string          $exceptionFile
      * @param string          $screenshotDir
@@ -449,7 +447,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
             $jsLogs = ['Unable to fetch js logs: ' . $e->getMessage()];
         }
 
-        if(isset($this->trackJs['trim']) && $this->trackJs['trim']) {
+        if (isset($this->trackJs['trim']) && $this->trackJs['trim']) {
             $trimLength = $this->trackJs['trim'];
             $jsErrors = $this->trimArrayMessages($jsErrors, $trimLength);
             $jsWarns = $this->trimArrayMessages($jsWarns, $trimLength);
@@ -473,14 +471,13 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     }
 
     /**
-     * @param array $messages
      * @param int   $length
      *
      * @return array
      */
     private function trimArrayMessages(array $messages, $length)
     {
-        array_walk($messages, function(&$msg) use ($length) {
+        array_walk($messages, function (&$msg) use ($length) {
             $msg = substr($msg, 0, $length);
         });
 
@@ -488,7 +485,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     }
 
     /**
-     * @param Mink $mink
      */
     public function setMink(Mink $mink)
     {
@@ -498,7 +494,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     }
 
     /**
-     * @param array $parameters
      */
     public function setMinkParameters(array $parameters)
     {
@@ -561,10 +556,11 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         $content = null;
         $filename .= microtime(true);
 
-        switch($this->screenshotMode) {
+        switch ($this->screenshotMode) {
             case self::SCREENSHOT_MODE_DEFAULT:
                 try {
                     $filename .= '.png';
+                    $this->handleResize($this->screenshotSize, $driver);
                     $content = $driver->getScreenshot();
                 } catch (DriverException $e) {
                     $filename .= '.html';
@@ -578,6 +574,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
             case self::SCREENSHOT_MODE_PNG:
                 try {
                     $filename .= '.png';
+                    $this->handleResize($this->screenshotSize, $driver);
                     $content = $driver->getScreenshot();
                 } catch (DriverException $e) {
                     throw new Exception('unable to produce screenshot: ' . $e->getMessage());
@@ -590,11 +587,18 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         return 'file://' . $filename;
     }
 
+    private function handleResize($size, $driver)
+    {
+        if (! $size) {
+            return;
+        }
+
+        $driver->resizeWindow((int) $size[0], (int) $size[1], 'current');
+    }
+
     /**
      * Override if gathering details is complex.
      *
-     * @param array           $debugBarSelectors
-     * @param DocumentElement $page
      *
      * @return string
      */
@@ -614,7 +618,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     }
 
     /**
-     * @param array $state
      *
      * @return string
      */
@@ -685,9 +688,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      * @param string $screenshotPath
      * @param string $driver
      * @param string $jsErrors
-     * @param mixed  $debugBarDetails
-     * @param mixed  $jsLogs
-     * @param mixed  $jsWarns
      *
      * @return string
      */
@@ -752,7 +752,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
 
     /**
      * @param Exception $exception The original exception.
-     * @param mixed     $message
      */
     private function setAdditionalExceptionDetailsInException(Exception $exception, $message)
     {
