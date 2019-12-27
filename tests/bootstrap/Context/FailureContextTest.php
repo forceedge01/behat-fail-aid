@@ -15,8 +15,10 @@ function realpath($path)
 namespace FailAid\Tests\Context;
 
 use Behat\Behat\Hook\Scope\AfterStepScope;
+use Behat\Behat\Hook\Scope\ScenarioScope;
 use Behat\Behat\Tester\Result\StepResult;
 use Behat\Gherkin\Node\FeatureNode;
+use Behat\Gherkin\Node\ScenarioInterface;
 use Behat\Gherkin\Node\StepNode;
 use Behat\Mink\Driver\DriverInterface;
 use Behat\Mink\Driver\Selenium2Driver;
@@ -40,22 +42,18 @@ class FailedStep implements ExceptionResult, StepResult
 {
     public function hasException()
     {
-
     }
 
     public function getException()
     {
-
     }
 
     public function isPassed()
     {
-
     }
 
     public function getResultCode()
     {
-
     }
 }
 
@@ -257,6 +255,12 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
             return $minkMock;
         };
 
+        $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
+        $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
+        $currentScenarioMock->expects($this->any())
+            ->method('getScenario')
+            ->willReturn($scenarioMock);
+        $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
         $result = $this->testObject
             ->setMink($minkMock())
             ->takeScreenShotAfterFailedStep($scope);
@@ -271,6 +275,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         $currentUrl = 'http://site.dev/login';
         $statusCode = 200;
         $html = '<html><body>Hello World</body></html>';
+        $expectedLineNumber = 73;
 
         $scope = $this->getAfterStepScopeWithMockedParams();
         $scope->getTestResult()->expects($this->once())
@@ -311,7 +316,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
                 ->willReturn($statusCode);
             $sessionMock->expects($this->any())
                 ->method('evaluateScript')
-                ->will($this->throwException(New DriverException('Unsupported action')));
+                ->will($this->throwException(new DriverException('Unsupported action')));
 
             $minkMock = $this->getMockBuilder(Mink::class)->getMock();
             $minkMock->expects($this->atLeastOnce())
@@ -328,6 +333,15 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
             'trim' => false
         ]);
 
+        $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
+        $scenarioMock->expects($this->any())
+            ->method('getLine')
+            ->willReturn($expectedLineNumber);
+        $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
+        $currentScenarioMock->expects($this->any())
+            ->method('getScenario')
+            ->willReturn($scenarioMock);
+        $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
         $result = $this->testObject
             ->setMink($minkMock())
             ->takeScreenShotAfterFailedStep($scope);
@@ -338,7 +352,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         self::assertRegExp('/\[CONTEXT\] \/.+\.php/', $result);
         self::assertRegExp('/\[SCREENSHOT\] file:\/\/\/.+/', $result);
         self::assertContains('[DRIVER] Mock_DriverInterface_', $result);
-        self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature', $result);
+        self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature:' . $expectedLineNumber, $result);
         self::assertContains('[JSERRORS] Unable to fetch js errors: Unsupported action', $result);
         self::assertNotContains('[DEBUG BAR INFO]', $result);
         self::assertNotContains('[STATE]', $result);
@@ -351,6 +365,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         $currentUrl = 'http://site.dev/login';
         $statusCode = 200;
         $html = '<html><body>Hello World</body></html>';
+        $expectedLineNumber = 79;
 
         $scope = $this->getAfterStepScopeWithMockedParams();
         $scope->getTestResult()->expects($this->once())
@@ -429,6 +444,15 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
             'trim' => false
         ]);
 
+        $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
+        $scenarioMock->expects($this->any())
+            ->method('getLine')
+            ->willReturn($expectedLineNumber);
+        $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
+        $currentScenarioMock->expects($this->any())
+            ->method('getScenario')
+            ->willReturn($scenarioMock);
+        $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
         $result = $this->testObject
             ->setMink($minkMock())
             ->takeScreenShotAfterFailedStep($scope);
@@ -439,7 +463,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         self::assertRegExp('/\[CONTEXT\] \/.+\.php/', $result);
         self::assertRegExp('/\[SCREENSHOT\] file:\/\/\/.+/', $result);
         self::assertContains('[DRIVER] Mock_DriverInterface_', $result);
-        self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature', $result);
+        self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature:' . $expectedLineNumber, $result);
         self::assertContains('[DEBUG BAR INFO]', $result);
         self::assertContains('[JSERRORS] first error', $result);
         self::assertContains('second error', $result);
@@ -461,6 +485,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         $currentUrl = 'http://site.dev/login';
         $statusCode = 200;
         $html = '<html><body>Hello World</body></html>';
+        $expectedLineNumber = 99;
 
         $scope = $this->getAfterStepScopeWithMockedParams();
         $scope->getTestResult()->expects($this->once())
@@ -511,6 +536,15 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         FailureContext::addState('test user email', 'its.inevitable@hotmail.com');
         FailureContext::addState('postcode', 'LD34 8GG');
 
+        $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
+        $scenarioMock->expects($this->any())
+            ->method('getLine')
+            ->willReturn($expectedLineNumber);
+        $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
+        $currentScenarioMock->expects($this->any())
+            ->method('getScenario')
+            ->willReturn($scenarioMock);
+        $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
         $result = $this->testObject
             ->setMink($minkMock())
             ->takeScreenShotAfterFailedStep($scope);
@@ -521,7 +555,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         self::assertRegExp('/\[CONTEXT\] \/.+\.php/', $result);
         self::assertRegExp('/\[SCREENSHOT\] file:\/\/\/.+/', $result);
         self::assertContains('[DRIVER] Mock_DriverInterface_', $result);
-        self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature', $result);
+        self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature:' . $expectedLineNumber, $result);
         self::assertNotContains('[DEBUG BAR INFO]', $result);
         self::assertContains('[STATE]', $result);
         self::assertContains('  [TEST USER EMAIL] its.inevitable@hotmail.com', $result);
@@ -726,6 +760,7 @@ Info: clearly not equal.';
         $featureFile = 'features/login.feature';
         $contextFile = '/Assertions/WebAssert.php';
         $screenshotPath = '/private/var/tmp/2873438.png';
+        $expectedLineNumber = 4;
         $debugBarDetails = '  [MESSAGE] Page not found.
   [QUERY] Element "#debug .query" Not Found.
 ';
@@ -742,6 +777,15 @@ Info: clearly not equal.';
             '[Console log]: OOps left debug in.'
         ];
 
+        $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
+        $scenarioMock->expects($this->any())
+            ->method('getLine')
+            ->willReturn($expectedLineNumber);
+        $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
+        $currentScenarioMock->expects($this->any())
+            ->method('getScenario')
+            ->willReturn($scenarioMock);
+
         $result = $this->callProtectedMethod('getExceptionDetails', [
             $currentUrl,
             $statusCode,
@@ -752,7 +796,8 @@ Info: clearly not equal.';
             $jsErrors,
             $jsLogs,
             $jsWarns,
-            DriverInterface::class
+            DriverInterface::class,
+            $currentScenarioMock
         ]);
 
         self::assertEquals('
@@ -763,7 +808,7 @@ Info: clearly not equal.';
 [CONTEXT] /Assertions/WebAssert.php
 [SCREENSHOT] /private/var/tmp/2873438.png
 [DRIVER] Behat\Mink\Driver\DriverInterface
-[RERUN] ./vendor/bin/behat features/login.feature
+[RERUN] ./vendor/bin/behat features/login.feature:4
 
 [JSERRORS] [Console error]: Undefined var "abc"
 ------
