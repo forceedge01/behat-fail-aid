@@ -103,6 +103,16 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     private static $states = [];
 
     /**
+     * @var boolean
+     */
+    private static $cleaned = false;
+
+    /**
+     * @var ScenarioEvent
+     */
+    private $currentScenario = null;
+
+    /**
      * Initializes context.
      *
      * Every scenario gets its own context instance.
@@ -189,20 +199,23 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      * @BeforeSuite
      *
      * Load the config file again as the context params aren't available until the context is initialised.
-     *
      */
-    public static function autoClean($arg1)
+    public static function autoCleanBeforeTestExecution($arg1)
     {
+        if (self::$cleaned) {
+            return;
+        }
+
         $configPath = self::getConfigFilePath();
         $config = (new ConfigurationLoader('BEHAT_PARAMS', $configPath))->loadConfiguration();
 
-        if (! isset($config[0]['extensions']['FailAid\\Extension']['screenshot'])) {
+        if (!isset($config[0]['extensions']['FailAid\\Extension']['screenshot'])) {
             return;
         }
 
         $screenshotConfig = $config[0]['extensions']['FailAid\\Extension']['screenshot'];
 
-        if (! $screenshotConfig['autoClean']) {
+        if (!$screenshotConfig['autoClean']) {
             return;
         }
 
@@ -213,57 +226,18 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
                 unlink($directory . DIRECTORY_SEPARATOR . $file->getFilename());
             }
         }
+
+        self::$cleaned = true;
     }
 
     /**
-     * Get the behat.yml config path from provided cli path or the default expected location.
-     *
-     * @return string
+     * @BeforeScenario
      */
-    private static function getConfigFilePath()
+    public function currentScenario($scenarioEvent)
     {
-        $input = new ArgvInput();
-        $path = $input->getParameterOption(['-c', '--config'], 'behat.yml');
-        $basePath = '';
+        $this->currentScenario = $scenarioEvent;
 
-        // If the path provided isn't an absolute path, then find the folder it is in recursively.
-        if (substr($path, 0, 1) !== '/') {
-            $basePath = self::getBasePathForFile($path, getcwd()) . DIRECTORY_SEPARATOR;
-        }
-
-        $configFile = $basePath . $path;
-
-        if (! file_exists($configFile)) {
-            throw new Exception(
-                "Autoclean: Config file '$path' not found at base path: '$basePath',
-                please pass in the path to the config file through the -c flag and check permissions."
-            );
-        }
-
-        return $configFile;
-    }
-
-    /**
-     * @param string $file
-     * @param string $path
-     *
-     * @return string
-     */
-    private static function getBasePathForFile($file, $path)
-    {
-        if (! file_exists($path . DIRECTORY_SEPARATOR . $file)) {
-            $chunks = explode(DIRECTORY_SEPARATOR, $path);
-
-            if (null === array_pop($chunks) || !$path) {
-                throw new Exception($file . ' not found in hierarchy of directory.');
-            }
-
-            $path = implode(DIRECTORY_SEPARATOR, $chunks);
-            echo $path . PHP_EOL;
-            self::getBasePathForFile($file, $path);
-        }
-
-        return $path;
+        return $this;
     }
 
     /**
@@ -323,6 +297,57 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
                 echo 'Error message: ' . $e->getMessage();
             }
         }
+    }
+
+    /**
+     * Get the behat.yml config path from provided cli path or the default expected location.
+     *
+     * @return string
+     */
+    private static function getConfigFilePath()
+    {
+        $input = new ArgvInput();
+        $path = $input->getParameterOption(['-c', '--config'], 'behat.yml');
+        $basePath = '';
+
+        // If the path provided isn't an absolute path, then find the folder it is in recursively.
+        if (substr($path, 0, 1) !== '/') {
+            $basePath = self::getBasePathForFile($path, getcwd()) . DIRECTORY_SEPARATOR;
+        }
+
+        $configFile = $basePath . $path;
+
+        if (!file_exists($configFile)) {
+            throw new Exception(
+                "Autoclean: Config file '$path' not found at base path: '$basePath',
+                please pass in the path to the config file through the -c flag and check permissions."
+            );
+        }
+
+        return $configFile;
+    }
+
+    /**
+     * @param string $file
+     * @param string $path
+     *
+     * @return string
+     */
+    private static function getBasePathForFile($file, $path)
+    {
+        if (!file_exists($path . DIRECTORY_SEPARATOR . $file)) {
+            $chunks = explode(DIRECTORY_SEPARATOR, $path);
+
+            if (null === array_pop($chunks) || !$path) {
+                throw new Exception($file . ' not found in hierarchy of directory.');
+            }
+
+            $path = implode(DIRECTORY_SEPARATOR, $chunks);
+            echo $path . PHP_EOL;
+            self::getBasePathForFile($file, $path);
+        }
+
+        return $path;
     }
 
     /**
@@ -464,7 +489,8 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
             $jsErrors,
             $jsLogs,
             $jsWarns,
-            get_class($driver)
+            get_class($driver),
+            $this->currentScenario
         );
 
         return $message;
@@ -549,7 +575,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      */
     public function takeScreenshot($filename, ElementInterface $page, $driver)
     {
-        if (! $page->getOuterHtml()) {
+        if (!$page->getOuterHtml()) {
             throw new Exception('Unable to take screenshot, page content not found.');
         }
 
@@ -589,7 +615,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
 
     private function handleResize($size, $driver)
     {
-        if (! $size) {
+        if (!$size) {
             return;
         }
 
@@ -701,7 +727,8 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         $jsErrors,
         $jsLogs,
         $jsWarns,
-        $driver
+        $driver,
+        $scenario
     ) {
         $message = PHP_EOL . PHP_EOL;
         $message .= '[URL] ' . $currentUrl . PHP_EOL;
@@ -710,7 +737,13 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         $message .= '[CONTEXT] ' . $contextFile . PHP_EOL;
         $message .= '[SCREENSHOT] ' . $screenshotPath . PHP_EOL;
         $message .= '[DRIVER] ' . $driver . PHP_EOL;
-        $message .= '[RERUN] ' . './vendor/bin/behat ' . $featureFile . PHP_EOL . PHP_EOL;
+        $message .= '[RERUN] '
+            . './vendor/bin/behat '
+            . $featureFile
+            . ':'
+            . $scenario->getScenario()->getLine()
+            . PHP_EOL
+            . PHP_EOL;
 
         $glue = PHP_EOL . '------' . PHP_EOL;
         if ($jsErrors) {
