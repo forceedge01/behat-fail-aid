@@ -138,6 +138,7 @@ Your original debugging messages will still appear in your console.
 #behat.yml
 ...
 - FailAid\Extension:
+    defaultSession: chrome # If you've got multiple sessions registered. If its a standard setup you won't need this.
     trackJs:
       errors: true
       warns: true
