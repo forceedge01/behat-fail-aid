@@ -1,7 +1,7 @@
 {
   "name": "genesis/behat-fail-aid",
-  "description": "Get more out of your test suite by getting it to work with you when tests fail. Works with Goutte and MinkExtension.",
-  "keywords": ["behat", "error", "fail", "behat-fail", "behat-error", "behat-exception"],
+  "description": "Get more out of your test suite by getting it to work with you when tests fail. Screenshots and more. Works with Goutte and MinkExtension.",
+  "keywords": ["behat", "behat-screenshot", "screenshot", "error", "fail", "behat-fail", "behat-error", "behat-exception"],
   "license": "MIT",
   "authors": [
     {
