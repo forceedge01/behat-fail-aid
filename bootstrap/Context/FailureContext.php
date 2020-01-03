@@ -9,6 +9,7 @@ use Behat\Mink\Driver\DriverInterface;
 use Behat\Mink\Element\DocumentElement;
 use Behat\Mink\Element\ElementInterface;
 use Behat\Mink\Exception\DriverException;
+use Behat\Mink\Exception\UnsupportedDriverActionException;
 use Behat\Mink\Mink;
 use Behat\Mink\Session;
 use Behat\Testwork\ServiceContainer\Configuration\ConfigurationLoader;
@@ -364,27 +365,27 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      *
      * @return array
      */
-    private function getJSErrors(Mink $mink)
+    private function getJSErrors(Session $session)
     {
-        return $mink->getSession()->evaluateScript('return window.jsErrors');
+        return $session->evaluateScript('return window.jsErrors');
     }
 
     /**
      *
      * @return array
      */
-    private function getJSLogs(Mink $mink)
+    private function getJSLogs(Session $session)
     {
-        return $mink->getSession()->evaluateScript('return window.jsLogs');
+        return $session->evaluateScript('return window.jsLogs');
     }
 
     /**
      *
      * @return array
      */
-    private function getJSWarns(Mink $mink)
+    private function getJSWarns(Session $session)
     {
-        return $mink->getSession()->evaluateScript('return window.jsWarns');
+        return $session->evaluateScript('return window.jsWarns');
     }
 
     /**
@@ -404,8 +405,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         $screenshotDir
     ) {
         $message = null;
-
-        $session = $this->getSession();
         $page = $session->getPage();
         $driver = $session->getDriver();
 
@@ -450,25 +449,31 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         $jsLogs = [];
         try {
             if (isset($this->trackJs['errors']) && $this->trackJs['errors']) {
-                $jsErrors = $this->getJSErrors($this->getMink());
+                $jsErrors = $this->getJSErrors($session);
             }
-        } catch (DriverException $e) {
+        } catch (UnsupportedDriverActionException $e) {
+            // ignore...
+        } catch (Exception $e) {
             $jsErrors = ['Unable to fetch js errors: ' . $e->getMessage()];
         }
 
         try {
             if (isset($this->trackJs['warns']) && $this->trackJs['warns']) {
-                $jsWarns = $this->getJSWarns($this->getMink());
+                $jsWarns = $this->getJSWarns($session);
             }
-        } catch (DriverException $e) {
+        } catch (UnsupportedDriverActionException $e) {
+            // ignore...
+        } catch (Exception $e) {
             $jsWarns = ['Unable to fetch js warns: ' . $e->getMessage()];
         }
 
         try {
             if (isset($this->trackJs['logs']) && $this->trackJs['logs']) {
-                $jsLogs = $this->getJSLogs($this->getMink());
+                $jsLogs = $this->getJSLogs($session);
             }
-        } catch (DriverException $e) {
+        } catch (UnsupportedDriverActionException $e) {
+            // ignore...
+        } catch (Exception $e) {
             $jsLogs = ['Unable to fetch js logs: ' . $e->getMessage()];
         }
 
