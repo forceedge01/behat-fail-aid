@@ -7,9 +7,7 @@ use Behat\Behat\Hook\Scope\AfterStepScope;
 use Behat\MinkExtension\Context\MinkAwareContext;
 use Behat\Mink\Driver\DriverInterface;
 use Behat\Mink\Element\DocumentElement;
-use Behat\Mink\Element\ElementInterface;
 use Behat\Mink\Exception\DriverException;
-use Behat\Mink\Exception\UnsupportedDriverActionException;
 use Behat\Mink\Mink;
 use Behat\Mink\Session;
 use Behat\Testwork\ServiceContainer\Configuration\ConfigurationLoader;
@@ -18,21 +16,17 @@ use DirectoryIterator;
 use Exception;
 use FailAid\Context\Contracts\DebugBarInterface;
 use FailAid\Context\Contracts\FailStateInterface;
-use FailAid\Context\Contracts\ScreenshotInterface;
+use FailAid\Service\JSDebug;
+use FailAid\Service\Output;
+use FailAid\Service\Screenshot;
 use ReflectionObject;
 use Symfony\Component\Console\Input\ArgvInput;
 
 /**
  * Defines application features from the specific context.
  */
-class FailureContext implements MinkAwareContext, FailStateInterface, ScreenshotInterface, DebugBarInterface
+class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarInterface
 {
-    const SCREENSHOT_MODE_DEFAULT = 'default';
-
-    const SCREENSHOT_MODE_PNG = 'png';
-
-    const SCREENSHOT_MODE_HTML = 'html';
-
     /**
      * @var Mink
      */
@@ -47,41 +41,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      * @var ExceptionDetailsProvider
      */
     private $exceptionDetailsProvider;
-
-    /**
-     * @var array
-     */
-    private $trackJs;
-
-    /**
-     * @var array
-     *
-     * @example [
-     *     '/images/' => 'http://dev.environment/images/',
-     *     '/js/' => 'http://dev.environment/js/'
-     * ]
-     */
-    private $siteFilters = [];
-
-    /**
-     * @var string
-     */
-    private $screenshotMode;
-
-    /**
-     * @var string
-     */
-    private $screenshotDir;
-
-    /**
-     * @var boolean
-     */
-    private $screenshotAutoClean = false;
-
-    /**
-     * @var array
-     */
-    private $screenshotSize = [];
 
     /**
      * @var array
@@ -114,6 +73,16 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     private $currentScenario = null;
 
     /**
+     * @var bool
+     */
+    private static $debugScenario = false;
+
+    /**
+     * @var boolean
+     */
+    private static $autoClean = false;
+
+    /**
      * Initializes context.
      *
      * Every scenario gets its own context instance.
@@ -123,42 +92,29 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     public function __construct()
     {
         date_default_timezone_set('Europe/London');
-        $this->screenshotDir = tempnam(sys_get_temp_dir(), date('Ymd-'));
-        $this->screenshotMode = self::SCREENSHOT_MODE_DEFAULT;
     }
 
     /**
-     * @param mixed $trackJs
+     * @param mixed  $trackJs
      * @param string $defaultSession
+     * @param array  $screenshot
+     * @param array  $siteFilters
+     * @param array  $debugBarSelectors
+     * @param array  $options
      */
     public function setConfig(
         array $screenshot = [],
         array $siteFilters = [],
         array $debugBarSelectors = [],
         array $trackJs = ['errors' => false, 'logs' => false, 'warns' => false, 'trim' => false],
-        string $defaultSession = null
+        string $defaultSession = null,
+        array $outputOptions = []
     ) {
-        $this->siteFilters = $siteFilters;
         $this->debugBarSelectors = $debugBarSelectors;
-
-        if (isset($screenshot['directory'])) {
-            $this->screenshotDir = realpath($screenshot['directory']) . DIRECTORY_SEPARATOR . date('Ymd-');
-        }
-
-        if (isset($screenshot['mode'])) {
-            $this->screenshotMode = $screenshot['mode'];
-        }
-
-        if (isset($screenshot['autoClean'])) {
-            $this->screenshotAutoClean = $screenshot['autoClean'];
-        }
-
-        if (isset($screenshot['size'])) {
-            $this->screenshotSize = explode('x', $screenshot['size'], 2);
-        }
-
         $this->defaultSession = $defaultSession;
-        $this->trackJs = $trackJs;
+        Screenshot::setOptions($screenshot, $siteFilters);
+        Output::setOptions($outputOptions);
+        JSDebug::setOptions($trackJs);
     }
 
     /**
@@ -167,8 +123,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     public function iTakeAScreenshot()
     {
         $session = $this->getSession();
-        $screenshotPath = $this->takeScreenshot(
-            $this->screenshotDir,
+        $screenshotPath = Screenshot::takeScreenshot(
             $session->getPage(),
             $session->getDriver()
         );
@@ -191,8 +146,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
             $driver,
             $this->debugBarSelectors,
             'NA',
-            'NA',
-            $this->screenshotDir
+            'NA'
         );
     }
 
@@ -200,6 +154,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      * @BeforeSuite
      *
      * Load the config file again as the context params aren't available until the context is initialised.
+     * @param mixed $arg1
      */
     public static function autoCleanBeforeTestExecution($arg1)
     {
@@ -216,29 +171,47 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
 
         $screenshotConfig = $config[0]['extensions']['FailAid\\Extension']['screenshot'];
 
-        if (!$screenshotConfig['autoClean']) {
+        if (!$screenshotConfig['autoClean'] && !self::$autoClean) {
             return;
         }
 
-        $extensions = ['png', 'html'];
         $directory = isset($screenshotConfig['directory']) ? $screenshotConfig['directory'] : sys_get_temp_dir();
-        foreach (new DirectoryIterator($directory) as $file) {
-            if ($file->isFile() && in_array($file->getExtension(), $extensions)) {
-                unlink($directory . DIRECTORY_SEPARATOR . $file->getFilename());
-            }
-        }
+        self::clearDir($directory);
 
         self::$cleaned = true;
     }
 
     /**
      * @BeforeScenario
+     * @param mixed $scenarioEvent
      */
     public function currentScenario($scenarioEvent)
     {
         $this->currentScenario = $scenarioEvent;
 
         return $this;
+    }
+
+    /**
+     * @BeforeScenario
+     */
+    public function refreshStates()
+    {
+        self::$states = [];
+    }
+
+    /**
+     * @AfterStep
+     */
+    public function takeScenarioScreenShot(AfterStepScope $scope)
+    {
+        if (self::$debugScenario) {
+            try {
+                $this->iTakeAScreenshot();
+            } catch (Exception $e) {
+                // Ignore...
+            }
+        }
     }
 
     /**
@@ -279,8 +252,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
                             $driver,
                             $this->debugBarSelectors,
                             $scope->getFeature()->getFile(),
-                            $exception->getFile(),
-                            $this->screenshotDir
+                            $exception->getFile()
                         );
                     }
 
@@ -298,6 +270,26 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
                 echo 'Error message: ' . $e->getMessage();
             }
         }
+    }
+
+    public static function setDebugScenario($bool)
+    {
+        self::$debugScenario = $bool;
+    }
+
+    public static function clearDir($directory)
+    {
+        $extensions = ['png', 'html'];
+        foreach (new DirectoryIterator($directory) as $file) {
+            if ($file->isFile() && in_array($file->getExtension(), $extensions)) {
+                unlink($directory . DIRECTORY_SEPARATOR . $file->getFilename());
+            }
+        }
+    }
+
+    public static function setAutoClean($bool)
+    {
+        self::$autoClean = $bool;
     }
 
     /**
@@ -362,36 +354,9 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     }
 
     /**
-     *
-     * @return array
-     */
-    private function getJSErrors(Session $session)
-    {
-        return $session->evaluateScript('return window.jsErrors');
-    }
-
-    /**
-     *
-     * @return array
-     */
-    private function getJSLogs(Session $session)
-    {
-        return $session->evaluateScript('return window.jsLogs');
-    }
-
-    /**
-     *
-     * @return array
-     */
-    private function getJSWarns(Session $session)
-    {
-        return $session->evaluateScript('return window.jsWarns');
-    }
-
-    /**
-     * @param string          $featureFile
-     * @param string          $exceptionFile
-     * @param string          $screenshotDir
+     * @param string $featureFile
+     * @param string $exceptionFile
+     * @param string $screenshotDir
      *
      * @return string
      */
@@ -401,8 +366,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         DriverInterface $driver,
         array $debugBarSelectors,
         $featureFile,
-        $exceptionFile,
-        $screenshotDir
+        $exceptionFile
     ) {
         $message = null;
         $page = $session->getPage();
@@ -424,8 +388,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
 
         $screenshotPath = null;
         try {
-            $screenshotPath = $this->takeScreenshot(
-                $screenshotDir,
+            $screenshotPath = Screenshot::takeScreenshot(
                 $page,
                 $driver
             );
@@ -444,45 +407,9 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
             $debugBarDetails = 'Unable to capture debug bar details: ' . $e->getMessage();
         }
 
-        $jsErrors = [];
-        $jsWarns = [];
-        $jsLogs = [];
-        try {
-            if (isset($this->trackJs['errors']) && $this->trackJs['errors']) {
-                $jsErrors = $this->getJSErrors($session);
-            }
-        } catch (UnsupportedDriverActionException $e) {
-            // ignore...
-        } catch (Exception $e) {
-            $jsErrors = ['Unable to fetch js errors: ' . $e->getMessage()];
-        }
-
-        try {
-            if (isset($this->trackJs['warns']) && $this->trackJs['warns']) {
-                $jsWarns = $this->getJSWarns($session);
-            }
-        } catch (UnsupportedDriverActionException $e) {
-            // ignore...
-        } catch (Exception $e) {
-            $jsWarns = ['Unable to fetch js warns: ' . $e->getMessage()];
-        }
-
-        try {
-            if (isset($this->trackJs['logs']) && $this->trackJs['logs']) {
-                $jsLogs = $this->getJSLogs($session);
-            }
-        } catch (UnsupportedDriverActionException $e) {
-            // ignore...
-        } catch (Exception $e) {
-            $jsLogs = ['Unable to fetch js logs: ' . $e->getMessage()];
-        }
-
-        if (isset($this->trackJs['trim']) && $this->trackJs['trim']) {
-            $trimLength = $this->trackJs['trim'];
-            $jsErrors = $this->trimArrayMessages($jsErrors, $trimLength);
-            $jsWarns = $this->trimArrayMessages($jsWarns, $trimLength);
-            $jsLogs = $this->trimArrayMessages($jsLogs, $trimLength);
-        }
+        $jsErrors = JSDebug::getJsErrors($session);
+        $jsWarns = JSDebug::getJsWarns($session);
+        $jsLogs = JSDebug::getJsLogs($session);
 
         $message = $this->getExceptionDetails(
             $currentUrl,
@@ -501,22 +428,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         return $message;
     }
 
-    /**
-     * @param int   $length
-     *
-     * @return array
-     */
-    private function trimArrayMessages(array $messages, $length)
-    {
-        array_walk($messages, function (&$msg) use ($length) {
-            $msg = substr($msg, 0, $length);
-        });
 
-        return $messages;
-    }
-
-    /**
-     */
     public function setMink(Mink $mink)
     {
         $this->mink = $mink;
@@ -524,8 +436,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         return $this;
     }
 
-    /**
-     */
+
     public function setMinkParameters(array $parameters)
     {
         $this->minkParameters = $parameters;
@@ -550,14 +461,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     }
 
     /**
-     * @BeforeScenario
-     */
-    public function refreshStates()
-    {
-        self::$states = [];
-    }
-
-    /**
      * @param string     $name
      * @param string|int $value
      */
@@ -567,69 +470,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     }
 
     /**
-     * Screenshot based on mode defined. Modes are:
-     * - default: png if possible, html otherwise. Suitable for running packs with both types drivers enabled.
-     * - html: all in html.
-     * - png: all in png, Throws exception if unable to.
-     *
-     * @param string $filename The filename for the screenshot.
-     * @param Page   $page     The page object.
-     * @param Driver $driver   The driver used to run the test.
-     *
-     * @return string
-     */
-    public function takeScreenshot($filename, ElementInterface $page, $driver)
-    {
-        if (!$page->getOuterHtml()) {
-            throw new Exception('Unable to take screenshot, page content not found.');
-        }
-
-        $content = null;
-        $filename .= microtime(true);
-
-        switch ($this->screenshotMode) {
-            case self::SCREENSHOT_MODE_DEFAULT:
-                try {
-                    $filename .= '.png';
-                    $this->handleResize($this->screenshotSize, $driver);
-                    $content = $driver->getScreenshot();
-                } catch (DriverException $e) {
-                    $filename .= '.html';
-                    $content = $this->applySiteSpecificFilters($page->getOuterHtml());
-                }
-                break;
-            case self::SCREENSHOT_MODE_HTML:
-                $filename .= '.html';
-                $content = $this->applySiteSpecificFilters($page->getOuterHtml());
-                break;
-            case self::SCREENSHOT_MODE_PNG:
-                try {
-                    $filename .= '.png';
-                    $this->handleResize($this->screenshotSize, $driver);
-                    $content = $driver->getScreenshot();
-                } catch (DriverException $e) {
-                    throw new Exception('unable to produce screenshot: ' . $e->getMessage());
-                }
-                break;
-        }
-
-        file_put_contents($filename, $content);
-
-        return 'file://' . $filename;
-    }
-
-    private function handleResize($size, $driver)
-    {
-        if (!$size) {
-            return;
-        }
-
-        $driver->resizeWindow((int) $size[0], (int) $size[1], 'current');
-    }
-
-    /**
      * Override if gathering details is complex.
-     *
      *
      * @return string
      */
@@ -663,55 +504,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
     }
 
     /**
-     * @param string $expected
-     * @param string $actual
-     * @param string $message
-     *
-     * @return string
-     */
-    public static function provideDiff($expected, $actual, $message = null)
-    {
-        return 'Mismatch: (- expected, + actual)' . PHP_EOL . PHP_EOL .
-            '- ' . $expected . PHP_EOL .
-            '+ ' . $actual . PHP_EOL . PHP_EOL .
-            'Info: ' . $message;
-    }
-
-    /**
-     * Override this method if you're using Goutte to produce html screenshots and want to fix broken relative links for
-     * assets.
-     *
-     * @example [
-     *     '/images/' => 'http://dev.environment/images/',
-     *     '/js/' => 'http://dev.environment/js/'
-     * ]
-     *
-     * @return array
-     */
-    protected function getSiteSpecificFilters()
-    {
-        return $this->siteFilters;
-    }
-
-    /**
-     * Override this method if the complexity of applying the filters is beyond what getSiteSpecificFilters() can
-     * provide.
-     *
-     * @param string $content
-     *
-     * @return string
-     */
-    protected function applySiteSpecificFilters($content)
-    {
-        $filters = $this->getSiteSpecificFilters();
-
-        $from = array_keys($filters);
-        $to = array_values($filters);
-
-        return str_replace($from, $to, $content);
-    }
-
-    /**
      * @param string $currentUrl
      * @param int    $statusCode
      * @param string $featureFile
@@ -719,6 +511,10 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
      * @param string $screenshotPath
      * @param string $driver
      * @param string $jsErrors
+     * @param mixed  $debugBarDetails
+     * @param mixed  $jsLogs
+     * @param mixed  $jsWarns
+     * @param mixed  $scenario
      *
      * @return string
      */
@@ -735,40 +531,19 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
         $driver,
         $scenario
     ) {
-        $message = PHP_EOL . PHP_EOL;
-        $message .= '[URL] ' . $currentUrl . PHP_EOL;
-        $message .= '[STATUS] ' . $statusCode . PHP_EOL;
-        $message .= '[FEATURE] ' . $featureFile . PHP_EOL;
-        $message .= '[CONTEXT] ' . $contextFile . PHP_EOL;
-        $message .= '[SCREENSHOT] ' . $screenshotPath . PHP_EOL;
-        $message .= '[DRIVER] ' . $driver . PHP_EOL;
-        $message .= '[RERUN] '
-            . './vendor/bin/behat '
-            . $featureFile
-            . ':'
-            . $scenario->getScenario()->getLine()
-            . PHP_EOL
-            . PHP_EOL;
-
-        $glue = PHP_EOL . '------' . PHP_EOL;
-        if ($jsErrors) {
-            $message .= '[JSERRORS] ' . implode($glue, $jsErrors) . PHP_EOL . PHP_EOL;
-        }
-
-        if ($jsWarns) {
-            $message .= '[JSWARNS] ' . implode($glue, $jsWarns) . PHP_EOL . PHP_EOL;
-        }
-
-        if ($jsLogs) {
-            $message .= '[JSLOGS] ' . implode($glue, $jsLogs) . PHP_EOL . PHP_EOL;
-        }
-
-        if ($debugBarDetails) {
-            $message .= '[DEBUG BAR INFO]' . PHP_EOL;
-            $message .= $debugBarDetails;
-        }
-
-        return $message;
+        return Output::getExceptionDetails(
+            $currentUrl,
+            $statusCode,
+            $featureFile,
+            $contextFile,
+            $screenshotPath,
+            $debugBarDetails,
+            $jsErrors,
+            $jsLogs,
+            $jsWarns,
+            $driver,
+            $scenario
+        );
     }
 
     /**
@@ -783,6 +558,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
             $message .= PHP_EOL . '[STATE]' . PHP_EOL;
             $message .= $stateDetails;
         }
+
         $message .= PHP_EOL;
 
         return $message;
@@ -790,6 +566,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, Screenshot
 
     /**
      * @param Exception $exception The original exception.
+     * @param mixed     $message
      */
     private function setAdditionalExceptionDetailsInException(Exception $exception, $message)
     {

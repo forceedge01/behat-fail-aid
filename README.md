@@ -30,11 +30,11 @@ These will output relevant information on the screen. (Your formatting must be p
 Whats new:
 ----------
 
-Major: Properly integrate extension with behat.
+Major: Refactor, Controlled output, scenario debug cli, clear screenshots cli, host machine screenshot url.
 
-Minor: Define size for screenshot.
+Minor: NA.
 
-Patch: Import latest packages to fix security issues.
+Patch: NA.
 
 Installation:
 -------------
@@ -42,7 +42,18 @@ Installation:
 composer require genesis/behat-fail-aid --dev
 ```
 
-Usage:
+CLI
+----
+
+### Clear screenshots:
+
+The `--clear-screenshots` flag, if supplied will remove existing screenshots from the directory specified.
+
+### Scenario debug:
+
+The `--scenario-debug` flag, if supplied will take attempt to screenshots after each step and display in the console to aid debugging. Best used when working on a single scenario along with the autoclean feature.
+
+Config/Usage:
 ------
 
 ```gherkin
@@ -58,6 +69,22 @@ default:
 
 This is the basic setup and will give you a lot of information on failures. For more options read through the rest of the README. Any of the options below can be used in conjunction with each other.
 
+Output options:
+----------------------------
+You can control the verbosity of the aid text from the config file. By default, all options are enabled.
+
+```
+- FailAid\Extension:
+    output:
+        url: false
+        status: false
+        feature: false
+        context: false
+        screenshot: false
+        driver: false
+        rerun: false
+```
+
 screenshot options:
 ----------------------------
 
@@ -70,6 +97,7 @@ screenshot options:
         mode: default
         autoClean: false
         size: 1444x1280
+        hostDirectory: /tmp/failures/
 ```
 
 ### directory (string):
@@ -87,6 +115,9 @@ Clean up the directory before the test suite runs.
 
 ### Size (string):
 The size of the screenshot to be taken on failure. At present, does not reset the size of the window. May conflict with the maximiseWindow API.
+
+### hostDirectory (string):
+If running against a VM or container, you can set this path to the screenshots directory on the host machine. The screenshots will be produced the same, the output will be for your host machine instead.
 
 siteFilters option:
 --------------------
