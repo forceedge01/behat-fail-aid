@@ -3,12 +3,16 @@
 namespace FailAid\Extension\ServiceContainer;
 
 use Behat\Behat\Context\ServiceContainer\ContextExtension;
+use Behat\Testwork\Cli\ServiceContainer\CliExtension;
 use Behat\Testwork\ServiceContainer\Extension as ExtensionInterface;
 use Behat\Testwork\ServiceContainer\ExtensionManager;
+use FailAid\Context\ClearScreenshots;
+use FailAid\Context\ScenarioDebugCli;
 use FailAid\Extension\Initializer\Initializer;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Reference;
 
 /**
  * Extension class.
@@ -60,14 +64,30 @@ class Extension implements ExtensionInterface
         $builder
             ->children()
                 ->arrayNode('screenshot')
+                ->addDefaultsIfNotset()
                     ->children()
                         ->scalarNode('directory')->defaultNull()->end()
                         ->scalarNode('mode')->defaultValue('html')->end()
-                        ->booleanNode('autoClean')->defaultValue(false)->end()
                         ->scalarNode('size')->defaultNull()->end()
+                        ->scalarNode('autoClean')->defaultValue(false)->end()
+                        ->scalarNode('hostDirectory')->defaultNull()->end()
+                    ->end()
+                ->end()
+                ->arrayNode('output')
+                ->addDefaultsIfNotset()
+                    ->children()
+                        ->booleanNode('url')->defaultValue(true)->end()
+                        ->booleanNode('status')->defaultValue(true)->end()
+                        ->booleanNode('feature')->defaultValue(true)->end()
+                        ->booleanNode('context')->defaultValue(true)->end()
+                        ->booleanNode('screenshot')->defaultValue(true)->end()
+                        ->booleanNode('driver')->defaultValue(true)->end()
+                        ->booleanNode('rerun')->defaultValue(true)->end()
+                        ->booleanNode('tags')->defaultValue(true)->end()
                     ->end()
                 ->end()
                 ->arrayNode('trackJs')
+                ->addDefaultsIfNotset()
                     ->children()
                         ->booleanNode('errors')->defaultValue(false)->end()
                         ->booleanNode('warns')->defaultValue(false)->end()
@@ -115,12 +135,9 @@ class Extension implements ExtensionInterface
             $config['siteFilters'] = [];
         }
         $container->setParameter('genesis.failaid.config.siteFilters', $config['siteFilters']);
-
-        if (! isset($config['trackJs'])) {
-            $config['trackJs'] = [];
-        }
         $container->setParameter('genesis.failaid.config.defaultSession', $config['defaultSession']);
         $container->setParameter('genesis.failaid.config.trackJs', $config['trackJs']);
+        $container->setParameter('genesis.failaid.config.output', $config['output']);
 
         $definition = new Definition(Initializer::class, [
             '%genesis.failaid.config.screenshot%',
@@ -128,9 +145,32 @@ class Extension implements ExtensionInterface
             '%genesis.failaid.config.debugBarSelectors%',
             '%genesis.failaid.config.trackJs%',
             '%genesis.failaid.config.defaultSession%',
+            '%genesis.failaid.config.output%',
         ]);
         $definition->addTag(ContextExtension::INITIALIZER_TAG);
         $container->setDefinition(self::CONTEXT_INITIALISER, $definition);
+        $this->addScenarioDebugCommand($container);
+        $this->addAutoCleanCommand($container);
+    }
+
+    private function addScenarioDebugCommand($container)
+    {
+        $definition = new Definition(
+            ScenarioDebugCli::class,
+            array(new Reference(self::CONTEXT_INITIALISER))
+        );
+        $definition->addTag(CliExtension::CONTROLLER_TAG, array('priority' => 1));
+        $container->setDefinition(CliExtension::CONTROLLER_TAG . '.failaid.scenariodebug', $definition);
+    }
+
+    private function addAutoCleanCommand($container)
+    {
+        $definition = new Definition(
+            ClearScreenshots::class,
+            array(new Reference(self::CONTEXT_INITIALISER))
+        );
+        $definition->addTag(CliExtension::CONTROLLER_TAG, array('priority' => 1));
+        $container->setDefinition(CliExtension::CONTROLLER_TAG . '.failaid.clearScreenshots', $definition);
     }
 
     /**

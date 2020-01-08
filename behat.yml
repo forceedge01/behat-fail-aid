@@ -10,8 +10,9 @@ default:
       screenshot:
         directory: ./features/failures
         mode: default
-        autoClean: true
+        autoClean: false
         size: 1444x1280
+        hostDirectory: /abc/123/
       debugBarSelectors:
         message: '#debugBar .message'
         queries: '#debugBar .queries'

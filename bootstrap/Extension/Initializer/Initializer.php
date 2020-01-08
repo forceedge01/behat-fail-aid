@@ -5,6 +5,7 @@ namespace FailAid\Extension\Initializer;
 use Behat\Behat\Context\Context;
 use Behat\Behat\Context\Initializer\ContextInitializer;
 use FailAid\Context\FailureContext;
+use FailAid\Service\StaticCallerService;
 
 /**
  * ContextInitialiser class.
@@ -16,13 +17,15 @@ class Initializer implements ContextInitializer
         array $siteFilters = [],
         array $debugBarSelectors = [],
         array $trackJs = [],
-        $defaultSession = null
+        $defaultSession = null,
+        array $output = []
     ) {
         $this->screenshot = $screenshot;
         $this->siteFilters = $siteFilters;
         $this->debugBarSelectors = $debugBarSelectors;
         $this->trackJs = $trackJs;
         $this->defaultSession = $defaultSession;
+        $this->output = $output;
     }
 
     /**
@@ -31,12 +34,14 @@ class Initializer implements ContextInitializer
     public function initializeContext(Context $context)
     {
         if ($context instanceof FailureContext) {
+            $context->setStaticCaller(new StaticCallerService());
             $context->setConfig(
                 $this->screenshot,
                 $this->siteFilters,
                 $this->debugBarSelectors,
                 $this->trackJs,
-                $this->defaultSession
+                $this->defaultSession,
+                $this->output
             );
         }
     }
