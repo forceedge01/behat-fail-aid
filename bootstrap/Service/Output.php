@@ -65,10 +65,10 @@ class Output
                 . $featureFile
                 . ':'
                 . $scenario->getScenario()->getLine()
-                . PHP_EOL
                 . PHP_EOL;
         }
 
+        $message .= PHP_EOL;
         $glue = PHP_EOL . '------' . PHP_EOL;
         if ($jsErrors) {
             $message .= '[JSERRORS] ' . implode($glue, $jsErrors) . PHP_EOL . PHP_EOL;

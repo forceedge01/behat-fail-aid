@@ -1,5 +1,11 @@
 <?php
 
+namespace FailAid\Service;
+
+function date() {
+    return '123';
+}
+
 namespace FailAid\Tests\Context;
 
 use Behat\Mink\Driver\DriverInterface;
@@ -12,6 +18,35 @@ use PHPUnit_Framework_TestCase;
 
 class ScreenshotTest extends PHPUnit_Framework_TestCase
 {
+    public function setUp()
+    {
+        Screenshot::setOptions([], []);
+    }
+
+    public function testSetOptions()
+    {
+        $options = [
+            'directory' => __DIR__,
+            'mode' => 'html',
+            'autoClean' => true,
+            'size' => '1024x2000',
+            'hostDirectory' => '/abc/123/'
+        ];
+        $siteFilters = [
+            'abc' => '123',
+            'xyz' => '789'
+        ];
+
+        Screenshot::setOptions($options, $siteFilters);
+
+        self::assertEquals($siteFilters, Screenshot::$siteFilters);
+        self::assertEquals($options['directory'] . '/123', Screenshot::$screenshotDir);
+        self::assertEquals($options['mode'], Screenshot::$screenshotMode);
+        self::assertEquals($options['autoClean'], Screenshot::$screenshotAutoClean);
+        self::assertEquals(['1024', '2000'], Screenshot::$screenshotSize);
+        self::assertEquals($options['hostDirectory'], Screenshot::$screenshotHostDirectory);
+    }
+
     /**
      * @expectedException Exception
      */
@@ -24,7 +59,7 @@ class ScreenshotTest extends PHPUnit_Framework_TestCase
             ->will($this->throwException(new Exception()));
         $driver = $this->getMockBuilder(DriverInterface::class)->getMock();
 
-        Screenshot::takeScreenshot($filename, $page, $driver);
+        Screenshot::takeScreenshot($page, $driver);
     }
 
     public function testTakeScreenshotWithHtmlAndDefaultScreenshotModeWithSeleniumDriver()
@@ -37,7 +72,7 @@ class ScreenshotTest extends PHPUnit_Framework_TestCase
         $driver = $this->getMockBuilder(Selenium2Driver::class)->getMock();
 
         Screenshot::$screenshotMode = 'default';
-        $result = Screenshot::takeScreenshot($filename, $page, $driver);
+        $result = Screenshot::takeScreenshot($page, $driver);
 
         self::assertEquals('png', pathinfo($result, PATHINFO_EXTENSION));
     }
@@ -56,7 +91,7 @@ class ScreenshotTest extends PHPUnit_Framework_TestCase
             ->will($this->throwException(new DriverException('Not supported.')));
 
         Screenshot::$screenshotMode = 'default';
-        $result = Screenshot::takeScreenshot($filename, $page, $driver);
+        $result = Screenshot::takeScreenshot($page, $driver);
 
         self::assertEquals('html', pathinfo($result, PATHINFO_EXTENSION));
     }
@@ -71,7 +106,7 @@ class ScreenshotTest extends PHPUnit_Framework_TestCase
         $driver = $this->getMockBuilder(DriverInterface::class)->getMock();
 
         Screenshot::$screenshotMode = 'html';
-        $result = Screenshot::takeScreenshot($filename, $page, $driver);
+        $result = Screenshot::takeScreenshot($page, $driver);
 
         self::assertEquals('html', pathinfo($result, PATHINFO_EXTENSION));
     }
@@ -86,7 +121,7 @@ class ScreenshotTest extends PHPUnit_Framework_TestCase
         $driver = $this->getMockBuilder(Selenium2Driver::class)->getMock();
 
         Screenshot::$screenshotMode = 'png';
-        $result = Screenshot::takeScreenshot($filename, $page, $driver);
+        $result = Screenshot::takeScreenshot($page, $driver);
 
         self::assertEquals('png', pathinfo($result, PATHINFO_EXTENSION));
     }

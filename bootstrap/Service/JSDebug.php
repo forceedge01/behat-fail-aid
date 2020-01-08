@@ -26,33 +26,6 @@ class JSDebug
         return self::$trackJs;
     }
 
-    /**
-     *
-     * @return array
-     */
-    private static function getJSErrorsFromPage(Session $session)
-    {
-        return $session->evaluateScript('return window.jsErrors');
-    }
-
-    /**
-     *
-     * @return array
-     */
-    private static function getJSLogsFromPage(Session $session)
-    {
-        return $session->evaluateScript('return window.jsLogs');
-    }
-
-    /**
-     *
-     * @return array
-     */
-    private static function getJSWarnsFromPage(Session $session)
-    {
-        return $session->evaluateScript('return window.jsWarns');
-    }
-
     public static function getJsErrors(Session $session)
     {
         $jsErrors = [];
@@ -115,6 +88,33 @@ class JSDebug
         }
 
         return $jsWarns;
+    }
+
+    /**
+     *
+     * @return array
+     */
+    private static function getJSErrorsFromPage(Session $session)
+    {
+        return $session->evaluateScript('return window.jsErrors');
+    }
+
+    /**
+     *
+     * @return array
+     */
+    private static function getJSLogsFromPage(Session $session)
+    {
+        return $session->evaluateScript('return window.jsLogs');
+    }
+
+    /**
+     *
+     * @return array
+     */
+    private static function getJSWarnsFromPage(Session $session)
+    {
+        return $session->evaluateScript('return window.jsWarns');
     }
 
     /**
