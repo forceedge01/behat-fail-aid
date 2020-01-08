@@ -364,11 +364,9 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
     }
 
     /**
-     * @param string $featureFile
-     * @param string $exceptionFile
-     * @param string $screenshotDir
-     *
      * @return string
+     * @param  mixed  $featureFile
+     * @param  mixed  $exceptionFile
      */
     private function gatherFacts(
         Session $session,

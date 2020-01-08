@@ -91,30 +91,33 @@ class JSDebug
     }
 
     /**
-     *
      * @return array
      */
     private static function getJSErrorsFromPage(Session $session)
     {
-        return $session->evaluateScript('return window.jsErrors');
+        $errors = $session->evaluateScript('return window.jsErrors');
+
+        return empty($errors) ? [] : $errors;
     }
 
     /**
-     *
-     * @return array
-     */
-    private static function getJSLogsFromPage(Session $session)
-    {
-        return $session->evaluateScript('return window.jsLogs');
-    }
-
-    /**
-     *
      * @return array
      */
     private static function getJSWarnsFromPage(Session $session)
     {
-        return $session->evaluateScript('return window.jsWarns');
+        $warns = $session->evaluateScript('return window.jsWarns');
+
+        return empty($warns) ? [] : $warns;
+    }
+
+    /**
+     * @return array
+     */
+    private static function getJSLogsFromPage(Session $session)
+    {
+        $logs = $session->evaluateScript('return window.jsLogs');
+
+        return empty($logs) ? [] : $logs;
     }
 
     /**
