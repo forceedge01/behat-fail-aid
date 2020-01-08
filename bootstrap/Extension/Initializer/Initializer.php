@@ -5,6 +5,7 @@ namespace FailAid\Extension\Initializer;
 use Behat\Behat\Context\Context;
 use Behat\Behat\Context\Initializer\ContextInitializer;
 use FailAid\Context\FailureContext;
+use FailAid\Service\StaticCallerService;
 
 /**
  * ContextInitialiser class.
@@ -33,6 +34,7 @@ class Initializer implements ContextInitializer
     public function initializeContext(Context $context)
     {
         if ($context instanceof FailureContext) {
+            $context->setStaticCaller(new StaticCallerService());
             $context->setConfig(
                 $this->screenshot,
                 $this->siteFilters,

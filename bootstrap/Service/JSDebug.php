@@ -21,6 +21,11 @@ class JSDebug
         self::$trackJs = $trackJs;
     }
 
+    public static function getOptions()
+    {
+        return self::$trackJs;
+    }
+
     /**
      *
      * @return array

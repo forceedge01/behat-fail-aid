@@ -19,6 +19,7 @@ use FailAid\Context\Contracts\FailStateInterface;
 use FailAid\Service\JSDebug;
 use FailAid\Service\Output;
 use FailAid\Service\Screenshot;
+use FailAid\Service\StaticCallerService;
 use ReflectionObject;
 use Symfony\Component\Console\Input\ArgvInput;
 
@@ -82,6 +83,8 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
      */
     private static $autoClean = false;
 
+    private $staticCaller;
+
     /**
      * Initializes context.
      *
@@ -92,6 +95,13 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
     public function __construct()
     {
         date_default_timezone_set('Europe/London');
+    }
+
+    public function setStaticCaller(StaticCallerService $staticCaller)
+    {
+        $this->staticCaller = $staticCaller;
+
+        return $this;
     }
 
     /**
@@ -107,14 +117,14 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
         array $siteFilters = [],
         array $debugBarSelectors = [],
         array $trackJs = ['errors' => false, 'logs' => false, 'warns' => false, 'trim' => false],
-        string $defaultSession = null,
+        $defaultSession = null,
         array $outputOptions = []
     ) {
         $this->debugBarSelectors = $debugBarSelectors;
         $this->defaultSession = $defaultSession;
-        Screenshot::setOptions($screenshot, $siteFilters);
-        Output::setOptions($outputOptions);
-        JSDebug::setOptions($trackJs);
+        $this->staticCaller->call(Screenshot::class, 'setOptions', [$screenshot, $siteFilters]);
+        $this->staticCaller->call(Output::class, 'setOptions', [$outputOptions]);
+        $this->staticCaller->call(JSDebug::class, 'setOptions', [$trackJs]);
     }
 
     /**
@@ -123,10 +133,10 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
     public function iTakeAScreenshot()
     {
         $session = $this->getSession();
-        $screenshotPath = Screenshot::takeScreenshot(
+        $screenshotPath = $this->staticCaller->call(Screenshot::class, 'takeScreenshot', [
             $session->getPage(),
             $session->getDriver()
-        );
+        ]);
 
         echo '[SCREENSHOT] ' . $screenshotPath;
     }
@@ -388,10 +398,10 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
 
         $screenshotPath = null;
         try {
-            $screenshotPath = Screenshot::takeScreenshot(
+            $screenshotPath = $this->staticCaller->call(Screenshot::class, 'takeScreenshot', [
                 $page,
                 $driver
-            );
+            ]);
         } catch (Exception $e) {
             // Doesn't work.
             $screenshotPath = 'Unable to produce screenshot: ' . $e->getMessage();
@@ -407,11 +417,11 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
             $debugBarDetails = 'Unable to capture debug bar details: ' . $e->getMessage();
         }
 
-        $jsErrors = JSDebug::getJsErrors($session);
-        $jsWarns = JSDebug::getJsWarns($session);
-        $jsLogs = JSDebug::getJsLogs($session);
+        $jsErrors = $this->staticCaller->call(JSDebug::class, 'getJsErrors', [$session]);
+        $jsWarns = $this->staticCaller->call(JSDebug::class, 'getJsWarns', [$session]);;
+        $jsLogs = $this->staticCaller->call(JSDebug::class, 'getJsLogs', [$session]);
 
-        $message = $this->getExceptionDetails(
+        $message = $this->staticCaller->call(Output::class, 'getExceptionDetails', [
             $currentUrl,
             $statusCode,
             $featureFile,
@@ -423,7 +433,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
             $jsWarns,
             get_class($driver),
             $this->currentScenario
-        );
+        ]);
 
         return $message;
     }
@@ -486,6 +496,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
             }
             $details .= PHP_EOL;
         }
+
         return $details;
     }
 
@@ -501,49 +512,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
         }
 
         return $stateDetails;
-    }
-
-    /**
-     * @param string $currentUrl
-     * @param int    $statusCode
-     * @param string $featureFile
-     * @param string $contextFile
-     * @param string $screenshotPath
-     * @param string $driver
-     * @param string $jsErrors
-     * @param mixed  $debugBarDetails
-     * @param mixed  $jsLogs
-     * @param mixed  $jsWarns
-     * @param mixed  $scenario
-     *
-     * @return string
-     */
-    private function getExceptionDetails(
-        $currentUrl,
-        $statusCode,
-        $featureFile,
-        $contextFile,
-        $screenshotPath,
-        $debugBarDetails,
-        $jsErrors,
-        $jsLogs,
-        $jsWarns,
-        $driver,
-        $scenario
-    ) {
-        return Output::getExceptionDetails(
-            $currentUrl,
-            $statusCode,
-            $featureFile,
-            $contextFile,
-            $screenshotPath,
-            $debugBarDetails,
-            $jsErrors,
-            $jsLogs,
-            $jsWarns,
-            $driver,
-            $scenario
-        );
     }
 
     /**

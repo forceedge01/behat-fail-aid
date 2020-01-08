@@ -16,6 +16,11 @@ class Output
         self::$output = $options;
     }
 
+    public static function getOptions()
+    {
+        return self::$output;
+    }
+
     public static function getExceptionDetails(
         $currentUrl,
         $statusCode,

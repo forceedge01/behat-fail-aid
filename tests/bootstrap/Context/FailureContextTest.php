@@ -21,9 +21,7 @@ use Behat\Gherkin\Node\FeatureNode;
 use Behat\Gherkin\Node\ScenarioInterface;
 use Behat\Gherkin\Node\StepNode;
 use Behat\Mink\Driver\DriverInterface;
-use Behat\Mink\Driver\Selenium2Driver;
 use Behat\Mink\Element\DocumentElement;
-use Behat\Mink\Element\Element;
 use Behat\Mink\Element\ElementInterface;
 use Behat\Mink\Exception\DriverException;
 use Behat\Mink\Mink;
@@ -33,6 +31,10 @@ use Behat\Testwork\Tester\Result\ExceptionResult;
 use Behat\Testwork\Tester\Result\TestResult;
 use Exception;
 use FailAid\Context\FailureContext;
+use FailAid\Service\JSDebug;
+use FailAid\Service\Output;
+use FailAid\Service\Screenshot;
+use FailAid\Service\StaticCallerService;
 use PHPUnit_Framework_TestCase;
 use ReflectionClass;
 use ReflectionObject;
@@ -57,7 +59,7 @@ class FailedStep implements ExceptionResult, StepResult
     }
 }
 
-class FailreContextTest extends PHPUnit_Framework_TestCase
+class FailureContextTest extends PHPUnit_Framework_TestCase
 {
     /**
      * @var FailreContextInterface The object to be tested.
@@ -79,30 +81,16 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
      */
     public function setUp()
     {
-        $this->dependencies = [];
+        $this->dependencies = [
+            'staticCallerMock' => $this->getMockBuilder(StaticCallerService::class)->getMock()
+        ];
 
         $this->reflection = new ReflectionClass(FailureContext::class);
-        $this->testObject = $this->reflection->newInstanceArgs($this->dependencies);
+        $this->testObject = $this->reflection->newInstanceArgs();
 
+        $this->testObject->setStaticCaller($this->dependencies['staticCallerMock']);
         $this->testObject->setConfig([], [], []);
-    }
-
-    public function testInitStateDefault()
-    {
-        $this->testObject = new FailureContext();
-
-        $expectedSiteFilters = [];
-        $expectedDebugBarSelectors = [];
-
-        $siteFilters = $this->getPrivatePropertyValue('siteFilters');
-        $screenshotMode = $this->getPrivatePropertyValue('screenshotMode');
-        $debugBarSelectors = $this->getPrivatePropertyValue('debugBarSelectors');
-        $screenshotDirectory = $this->getPrivatePropertyValue('screenshotDir');
-
-        self::assertTrue(strlen($screenshotDirectory) > 0);
-        self::assertEquals(FailureContext::SCREENSHOT_MODE_DEFAULT, $screenshotMode);
-        self::assertEquals($expectedSiteFilters, $siteFilters);
-        self::assertEquals($expectedDebugBarSelectors, $debugBarSelectors);
+        $this->setPrivatePropertyValue('exceptionHash', null);
     }
 
     public function testInitStateWithParams()
@@ -110,6 +98,8 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         $expectedScreenshotDirectory = '/abc/123/';
         $expectedScreenshotMode = 'html';
         $expectedScreenshotAutoclean = true;
+        $expectedSize = '1024x997';
+        $expectedHostDirectory = '/host/dir/';
         $expectedSiteFilters = [
             '/js/' => 'http://site.dev/js/',
             '/css/' => 'http://site.dev/css/',
@@ -118,30 +108,43 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
             'message' => '.debugBar .message',
             'queries' => '.debugBar .queries',
         ];
+        $expectedDefaultSession = 'javascript';
+        $expectedTrackJs = ['errors' => true];
+        $expectedOutputOptions = [
+            'status' => false
+        ];
+        $expectedScreenshotOptions = [
+            'directory' => $expectedScreenshotDirectory,
+            'mode' => $expectedScreenshotMode,
+            'autoClean' => $expectedScreenshotAutoclean,
+            'hostDirectory' => $expectedHostDirectory,
+            'size' => $expectedSize,
+        ];
 
-        $this->testObject = new FailureContext();
+        $this->dependencies['staticCallerMock']->expects($this->at(0))
+            ->method('call')
+            ->with(Screenshot::class, 'setOptions', [$expectedScreenshotOptions, $expectedSiteFilters]);
+        $this->dependencies['staticCallerMock']->expects($this->at(1))
+            ->method('call')
+            ->with(Output::class, 'setOptions', [$expectedOutputOptions]);
+        $this->dependencies['staticCallerMock']->expects($this->at(2))
+            ->method('call')
+            ->with(JSDebug::class, 'setOptions', [$expectedTrackJs]);
+
         $this->testObject->setConfig(
-            [
-                'directory' => $expectedScreenshotDirectory,
-                'mode' => $expectedScreenshotMode,
-                'autoClean' => $expectedScreenshotAutoclean,
-            ],
+            $expectedScreenshotOptions,
             $expectedSiteFilters,
-            $expectedDebugBarSelectors
+            $expectedDebugBarSelectors,
+            $expectedTrackJs,
+            $expectedDefaultSession,
+            $expectedOutputOptions
         );
 
-        $siteFilters = $this->getPrivatePropertyValue('siteFilters');
-        $screenshotMode = $this->getPrivatePropertyValue('screenshotMode');
         $debugBarSelectors = $this->getPrivatePropertyValue('debugBarSelectors');
-        $screenshotDirectory = $this->getPrivatePropertyValue('screenshotDir');
-        $screenshotAutoClean = $this->getPrivatePropertyValue('screenshotAutoClean');
+        $defaultSession = $this->getPrivatePropertyValue('defaultSession');
 
-        self::assertStringStartsWith($expectedScreenshotDirectory, $screenshotDirectory);
-        self::assertNotEquals($expectedScreenshotDirectory, $screenshotDirectory);
-        self::assertEquals($expectedScreenshotMode, $screenshotMode);
-        self::assertEquals($expectedSiteFilters, $siteFilters);
-        self::assertEquals($expectedScreenshotAutoclean, $screenshotAutoClean);
         self::assertEquals($expectedDebugBarSelectors, $debugBarSelectors);
+        self::assertEquals($expectedDefaultSession, $defaultSession);
     }
 
     public function testSetMink()
@@ -209,13 +212,17 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         $currentUrl = 'http://site.dev/login';
         $statusCode = 200;
 
+        $exceptionMock = $this->getMockBuilder(Exception::class)->getMock();
+        $exceptionMock->expects($this->any())
+            ->method('getMessage')
+            ->willReturn($exceptionMessage);
         $scope = $this->getAfterStepScopeWithMockedParams();
         $scope->getTestResult()->expects($this->once())
             ->method('getResultCode')
             ->willReturn(TestResult::FAILED);
         $scope->getTestResult()->expects($this->atLeastOnce())
             ->method('getException')
-            ->willReturn(new Exception($exceptionMessage));
+            ->willReturn($exceptionMock);
         $scope->getFeature()->expects($this->atLeastOnce())
             ->method('getFile')
             ->willReturn($featureFile);
@@ -273,17 +280,25 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         $featureFile = 'my/example/scenarios.feature';
         $exceptionMessage = 'something went wrong';
         $currentUrl = 'http://site.dev/login';
+        $exceptionFile = '/abc/23243234234/Service.php';
         $statusCode = 200;
         $html = '<html><body>Hello World</body></html>';
         $expectedLineNumber = 73;
+        $expectedScreenshotPath = '/abc/failures/82738492783432.png';
 
+        $exceptionMock = $this->getMockBuilder(Exception::class)->getMock();
+        $exceptionMock->expects($this->any())
+            ->method('getMessage')
+            ->willReturn($exceptionMessage);
+        // Exception object has final method which are not mockable by phpunit.
+        $this->setObjectPrivatePropertyValue($exceptionMock, 'file', $exceptionFile);
         $scope = $this->getAfterStepScopeWithMockedParams();
         $scope->getTestResult()->expects($this->once())
             ->method('getResultCode')
             ->willReturn(TestResult::FAILED);
         $scope->getTestResult()->expects($this->atLeastOnce())
             ->method('getException')
-            ->willReturn(new Exception($exceptionMessage));
+            ->willReturn($exceptionMock);
         $scope->getFeature()->expects($this->atLeastOnce())
             ->method('getFile')
             ->willReturn($featureFile);
@@ -325,13 +340,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
 
             return $minkMock;
         };
-
-        $this->setPrivatePropertyValue('trackJs', [
-            'errors' => true,
-            'logs' => true,
-            'warns' => true,
-            'trim' => false
-        ]);
+        $minkMock = $minkMock();
 
         $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
         $scenarioMock->expects($this->any())
@@ -341,19 +350,55 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
         $currentScenarioMock->expects($this->any())
             ->method('getScenario')
             ->willReturn($scenarioMock);
+
+        $sessionMock = $minkMock->getSession();
+        $pageMock = $sessionMock->getPage();
+        $driverMock = $sessionMock->getDriver();
+
+        $this->dependencies['staticCallerMock']->expects($this->at(0))
+            ->method('call')
+            ->with(Screenshot::class, 'takeScreenshot', [$pageMock, $driverMock])
+            ->willReturn($expectedScreenshotPath);
+
+        $this->dependencies['staticCallerMock']->expects($this->at(1))
+            ->method('call')
+            ->with(JSDebug::class, 'getJsErrors', [$sessionMock])
+            ->willReturn(['Undefined var: name']);
+
+        $this->dependencies['staticCallerMock']->expects($this->at(2))
+            ->method('call')
+            ->with(JSDebug::class, 'getJsWarns', [$sessionMock])
+            ->willReturn([]);
+
+        $this->dependencies['staticCallerMock']->expects($this->at(3))
+            ->method('call')
+            ->with(JSDebug::class, 'getJsLogs', [$sessionMock])
+            ->willReturn([]);
+
+        $this->dependencies['staticCallerMock']->expects($this->at(4))
+            ->method('call')
+            ->with(Output::class, 'getExceptionDetails', [
+                $currentUrl,
+                $statusCode,
+                $featureFile,
+                $exceptionFile,
+                $expectedScreenshotPath,
+                '',
+                $jsErrors = ['Undefined var: name'],
+                $jsLogs = [],
+                $jsWarns = [],
+                get_class($driverMock),
+                $currentScenarioMock
+            ])
+            ->willReturn('[URL] http://site.dev/login');
+
         $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
         $result = $this->testObject
-            ->setMink($minkMock())
+            ->setMink($minkMock)
             ->takeScreenShotAfterFailedStep($scope);
 
+        self::assertInternalType('string', $result);
         self::assertContains('[URL] http://site.dev/login', $result);
-        self::assertContains('[STATUS] 200', $result);
-        self::assertContains('[FEATURE] my/example/scenarios.feature', $result);
-        self::assertRegExp('/\[CONTEXT\] \/.+\.php/', $result);
-        self::assertRegExp('/\[SCREENSHOT\] file:\/\/\/.+/', $result);
-        self::assertContains('[DRIVER] Mock_DriverInterface_', $result);
-        self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature:' . $expectedLineNumber, $result);
-        self::assertContains('[JSERRORS] Unable to fetch js errors: Unsupported action', $result);
         self::assertNotContains('[DEBUG BAR INFO]', $result);
         self::assertNotContains('[STATE]', $result);
     }
@@ -391,7 +436,7 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
             $pageMock->expects($this->atLeastOnce())
                 ->method('getOuterHtml')
                 ->willReturn($html);
-            $pageMock->expects($this->at(2))
+            $pageMock->expects($this->at(1))
                 ->method('find')
                 ->with('css', '#debugBar .message')
                 ->willReturn($elementMock);
@@ -437,13 +482,6 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
             'queries' => '#debugBar .queries'
         ]);
 
-        $this->setPrivatePropertyValue('trackJs', [
-            'errors' => true,
-            'logs' => true,
-            'warns' => true,
-            'trim' => false
-        ]);
-
         $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
         $scenarioMock->expects($this->any())
             ->method('getLine')
@@ -453,27 +491,15 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
             ->method('getScenario')
             ->willReturn($scenarioMock);
         $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
+        $this->dependencies['staticCallerMock']->expects($this->at(4))
+            ->method('call')
+            ->willReturn('[URL] http://site.dev/login');
+
         $result = $this->testObject
             ->setMink($minkMock())
             ->takeScreenShotAfterFailedStep($scope);
 
-        self::assertContains('[URL] http://site.dev/login', $result);
-        self::assertContains('[STATUS] 200', $result);
-        self::assertContains('[FEATURE] my/example/scenarios.feature', $result);
-        self::assertRegExp('/\[CONTEXT\] \/.+\.php/', $result);
-        self::assertRegExp('/\[SCREENSHOT\] file:\/\/\/.+/', $result);
-        self::assertContains('[DRIVER] Mock_DriverInterface_', $result);
-        self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature:' . $expectedLineNumber, $result);
-        self::assertContains('[DEBUG BAR INFO]', $result);
-        self::assertContains('[JSERRORS] first error', $result);
-        self::assertContains('second error', $result);
-        self::assertContains('[JSWARNS] first warn', $result);
-        self::assertContains('second warn', $result);
-        self::assertContains('[JSLOGS] first log', $result);
-        self::assertContains('second log', $result);
-        self::assertContains('  [MESSAGE] A registered service was not found.', $result);
-        self::assertContains('  [QUERIES] Element "#debugBar .queries" Not Found.', $result);
-        self::assertNotContains('[STATE]', $result);
+        self::assertEquals('[URL] http://site.dev/login' . PHP_EOL, $result);
 
         $this->setPrivatePropertyValue('debugBarSelectors', []);
     }
@@ -545,149 +571,19 @@ class FailreContextTest extends PHPUnit_Framework_TestCase
             ->method('getScenario')
             ->willReturn($scenarioMock);
         $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
+
+        $this->dependencies['staticCallerMock']->expects($this->at(4))
+            ->method('call')
+            ->willReturn('[URL] http://site.dev/login');
+
         $result = $this->testObject
             ->setMink($minkMock())
             ->takeScreenShotAfterFailedStep($scope);
 
         self::assertContains('[URL] http://site.dev/login', $result);
-        self::assertContains('[STATUS] 200', $result);
-        self::assertContains('[FEATURE] my/example/scenarios.feature', $result);
-        self::assertRegExp('/\[CONTEXT\] \/.+\.php/', $result);
-        self::assertRegExp('/\[SCREENSHOT\] file:\/\/\/.+/', $result);
-        self::assertContains('[DRIVER] Mock_DriverInterface_', $result);
-        self::assertContains('[RERUN] ./vendor/bin/behat my/example/scenarios.feature:' . $expectedLineNumber, $result);
-        self::assertNotContains('[DEBUG BAR INFO]', $result);
         self::assertContains('[STATE]', $result);
         self::assertContains('  [TEST USER EMAIL] its.inevitable@hotmail.com', $result);
         self::assertContains('  [POSTCODE] LD34 8GG', $result);
-    }
-
-    /**
-     * @expectedException Exception
-     */
-    public function testTakeScreenshotNoHtml()
-    {
-        $filename = '/file/name.png';
-        $page = $this->getMockBuilder(Element::class)->disableOriginalConstructor()->getMock();
-        $page->expects($this->once())
-            ->method('getOuterHtml')
-            ->will($this->throwException(new Exception()));
-        $driver = $this->getMockBuilder(DriverInterface::class)->getMock();
-
-        $this->testObject->takeScreenshot($filename, $page, $driver);
-    }
-
-    public function testTakeScreenshotWithHtmlAndDefaultScreenshotModeWithSeleniumDriver()
-    {
-        $filename = '/file/name-';
-        $page = $this->getMockBuilder(Element::class)->disableOriginalConstructor()->getMock();
-        $page->expects($this->any())
-            ->method('getOuterHtml')
-            ->willReturn('<html></html>');
-        $driver = $this->getMockBuilder(Selenium2Driver::class)->getMock();
-
-        $this->setPrivatePropertyValue('screenshotMode', 'default');
-        $result = $this->testObject->takeScreenshot($filename, $page, $driver);
-
-        self::assertEquals('png', pathinfo($result, PATHINFO_EXTENSION));
-    }
-
-    public function testTakeScreenshotWithHtmlAndDefaultScreenshotModeWithNonSeleniumDriver()
-    {
-        $filename = '/file/name-';
-        $page = $this->getMockBuilder(Element::class)->disableOriginalConstructor()->getMock();
-        $page->expects($this->any())
-            ->method('getOuterHtml')
-            ->willReturn('<html></html>');
-        $driver = $this->getMockBuilder(DriverInterface::class)->getMock();
-        $driver
-            ->expects($this->once())
-            ->method('getScreenshot')
-            ->will($this->throwException(new DriverException('Not supported.')));
-
-        $this->setPrivatePropertyValue('screenshotMode', 'default');
-        $result = $this->testObject->takeScreenshot($filename, $page, $driver);
-
-        self::assertEquals('html', pathinfo($result, PATHINFO_EXTENSION));
-    }
-
-    public function testTakeScreenshotWithHtmlAndHtmlScreenshotMode()
-    {
-        $filename = '/file/name-';
-        $page = $this->getMockBuilder(Element::class)->disableOriginalConstructor()->getMock();
-        $page->expects($this->any())
-            ->method('getOuterHtml')
-            ->willReturn('<html></html>');
-        $driver = $this->getMockBuilder(DriverInterface::class)->getMock();
-
-        $this->setPrivatePropertyValue('screenshotMode', FailureContext::SCREENSHOT_MODE_DEFAULT);
-
-        $this->setPrivatePropertyValue('screenshotMode', 'html');
-        $result = $this->testObject->takeScreenshot($filename, $page, $driver);
-
-        self::assertEquals('html', pathinfo($result, PATHINFO_EXTENSION));
-    }
-
-    public function testTakeScreenshotWithHtmlAndPNGScreenshotMode()
-    {
-        $filename = '/file/name-';
-        $page = $this->getMockBuilder(Element::class)->disableOriginalConstructor()->getMock();
-        $page->expects($this->any())
-            ->method('getOuterHtml')
-            ->willReturn('<html></html>');
-        $driver = $this->getMockBuilder(Selenium2Driver::class)->getMock();
-
-        $this->setPrivatePropertyValue('screenshotMode', 'png');
-        $result = $this->testObject->takeScreenshot($filename, $page, $driver);
-
-        self::assertEquals('png', pathinfo($result, PATHINFO_EXTENSION));
-    }
-
-    public function testProvideDiff()
-    {
-        $expected = 'abc';
-        $actual = 'xyz';
-        $message = 'clearly not equal.';
-
-        $result = FailureContext::provideDiff($expected, $actual, $message);
-
-        $expectedOutput = 'Mismatch: (- expected, + actual)
-
-- abc
-+ xyz
-
-Info: clearly not equal.';
-
-        self::assertEquals($expectedOutput, $result);
-    }
-
-    public function testApplySiteSpecificFilters()
-    {
-        $content = '<html>
-        <body>
-        <img src="/assets/images/abc.png" />
-        <link rel="text/stylesheet" src="/assets/css/style.css" />
-        <script src="/assets/script/script.js" />
-        </body>
-        </html>';
-
-        $expectedContent = '<html>
-        <body>
-        <img src="http://site.dev/assets/images/abc.png" />
-        <link rel="text/stylesheet" src="http://site.dev/assets/css/style.css" />
-        <script src="http://site.dev/assets/javascripts/script.js" />
-        </body>
-        </html>';
-
-        $this->setPrivatePropertyValue('siteFilters', [
-            '/assets/images/' => 'http://site.dev/assets/images/',
-            '/assets/css/' => 'http://site.dev/assets/css/',
-            '/assets/script/' => 'http://site.dev/assets/javascripts/'
-        ]);
-
-        $result = $this->callProtectedMethod('applySiteSpecificFilters', [$content]);
-
-        self::assertEquals($expectedContent, $result);
     }
 
     public function testGatherDebugBarDetailsAllFound()
@@ -749,77 +645,6 @@ Info: clearly not equal.';
         $result = $this->callProtectedMethod('gatherDebugBarDetails', [$debugBarSelectors, $page]);
 
         self::assertEquals('  [MESSAGE] Page not found.
-  [QUERY] Element "#debug .query" Not Found.
-', $result);
-    }
-
-    public function testGetExceptionDetails()
-    {
-        $currentUrl = 'http://site.dev/';
-        $statusCode = '500';
-        $featureFile = 'features/login.feature';
-        $contextFile = '/Assertions/WebAssert.php';
-        $screenshotPath = '/private/var/tmp/2873438.png';
-        $expectedLineNumber = 4;
-        $debugBarDetails = '  [MESSAGE] Page not found.
-  [QUERY] Element "#debug .query" Not Found.
-';
-        $stateDetails = '  [USER EMAIL] its.inevitable@hotmail.com';
-
-        $jsErrors = [
-            '[Console error]: Undefined var "abc"',
-            '[Console error]: Undefined var "xyz"'
-        ];
-        $jsWarns = [
-            '[Console warn]: Could not load data in.',
-        ];
-        $jsLogs = [
-            '[Console log]: OOps left debug in.'
-        ];
-
-        $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
-        $scenarioMock->expects($this->any())
-            ->method('getLine')
-            ->willReturn($expectedLineNumber);
-        $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
-        $currentScenarioMock->expects($this->any())
-            ->method('getScenario')
-            ->willReturn($scenarioMock);
-
-        $result = $this->callProtectedMethod('getExceptionDetails', [
-            $currentUrl,
-            $statusCode,
-            $featureFile,
-            $contextFile,
-            $screenshotPath,
-            $debugBarDetails,
-            $jsErrors,
-            $jsLogs,
-            $jsWarns,
-            DriverInterface::class,
-            $currentScenarioMock
-        ]);
-
-        self::assertEquals('
-
-[URL] http://site.dev/
-[STATUS] 500
-[FEATURE] features/login.feature
-[CONTEXT] /Assertions/WebAssert.php
-[SCREENSHOT] /private/var/tmp/2873438.png
-[DRIVER] Behat\Mink\Driver\DriverInterface
-[RERUN] ./vendor/bin/behat features/login.feature:4
-
-[JSERRORS] [Console error]: Undefined var "abc"
-------
-[Console error]: Undefined var "xyz"
-
-[JSWARNS] [Console warn]: Could not load data in.
-
-[JSLOGS] [Console log]: OOps left debug in.
-
-[DEBUG BAR INFO]
-  [MESSAGE] Page not found.
   [QUERY] Element "#debug .query" Not Found.
 ', $result);
     }
@@ -896,6 +721,15 @@ Info: clearly not equal.';
         $reflectionProperty = new ReflectionProperty(get_class($this->testObject), $property);
         $reflectionProperty->setAccessible(true);
         $reflectionProperty->setValue($this->testObject, $value);
+
+        return $this;
+    }
+
+    private function setObjectPrivatePropertyValue($object, $property, $value)
+    {
+        $reflectionProperty = new ReflectionProperty(get_class($object), $property);
+        $reflectionProperty->setAccessible(true);
+        $reflectionProperty->setValue($object, $value);
 
         return $this;
     }

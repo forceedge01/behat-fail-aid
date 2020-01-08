@@ -103,12 +103,12 @@ class Screenshot implements ScreenshotInterface
                     $filename .= '.png';
                     self::handleResize(self::$screenshotSize, $driver);
                 } catch (DriverException $e) {
-                    $content = self::applySiteSpecificFilters($page->getOuterHtml());
+                    $content = static::applySiteSpecificFilters($page->getOuterHtml());
                     $filename .= '.html';
                 }
                 break;
             case self::SCREENSHOT_MODE_HTML:
-                $content = self::applySiteSpecificFilters($page->getOuterHtml());
+                $content = static::applySiteSpecificFilters($page->getOuterHtml());
                 $filename .= '.html';
                 break;
             case self::SCREENSHOT_MODE_PNG:
@@ -129,6 +129,21 @@ class Screenshot implements ScreenshotInterface
         }
 
         return 'file://' . self::$screenshotDir . $filename;
+    }
+
+    /**
+     * @param string $content
+     *
+     * @return string
+     */
+    public static function applySiteSpecificFilters($content)
+    {
+        $filters = self::getSiteSpecificFilters();
+
+        $from = array_keys($filters);
+        $to = array_values($filters);
+
+        return str_replace($from, $to, $content);
     }
 
     private static function handleResize($size, $driver)
@@ -154,23 +169,5 @@ class Screenshot implements ScreenshotInterface
     protected static function getSiteSpecificFilters()
     {
         return self::$siteFilters;
-    }
-
-    /**
-     * Override this method if the complexity of applying the filters is beyond what getSiteSpecificFilters() can
-     * provide.
-     *
-     * @param string $content
-     *
-     * @return string
-     */
-    protected static function applySiteSpecificFilters($content)
-    {
-        $filters = self::getSiteSpecificFilters();
-
-        $from = array_keys($filters);
-        $to = array_values($filters);
-
-        return str_replace($from, $to, $content);
     }
 }
