@@ -70,7 +70,9 @@ class Screenshot implements ScreenshotInterface
         }
 
         if (isset($options['hostDirectory'])) {
-            self::$screenshotHostDirectory = $options['hostDirectory'];
+            self::$screenshotHostDirectory = rtrim($options['hostDirectory'], DIRECTORY_SEPARATOR) .
+                DIRECTORY_SEPARATOR .
+                date('Ymd-');
         }
 
         self::$siteFilters = $siteFilters;
