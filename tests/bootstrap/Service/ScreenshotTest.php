@@ -44,7 +44,7 @@ class ScreenshotTest extends PHPUnit_Framework_TestCase
         self::assertEquals($options['mode'], Screenshot::$screenshotMode);
         self::assertEquals($options['autoClean'], Screenshot::$screenshotAutoClean);
         self::assertEquals(['1024', '2000'], Screenshot::$screenshotSize);
-        self::assertEquals($options['hostDirectory'], Screenshot::$screenshotHostDirectory);
+        self::assertEquals($options['hostDirectory'] . '123', Screenshot::$screenshotHostDirectory);
     }
 
     /**
