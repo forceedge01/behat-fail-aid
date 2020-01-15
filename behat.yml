@@ -12,7 +12,7 @@ default:
         mode: default
         autoClean: false
         size: 1444x1280
-        hostDirectory: /abc/123/
+        hostDirectory: /home/abdul/Projects/personal/behat-fail-aid/features/failures
       debugBarSelectors:
         message: '#debugBar .message'
         queries: '#debugBar .queries'

@@ -355,27 +355,27 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
         $pageMock = $sessionMock->getPage();
         $driverMock = $sessionMock->getDriver();
 
-        $this->dependencies['staticCallerMock']->expects($this->at(0))
+        $this->dependencies['staticCallerMock']->expects($this->at(1))
             ->method('call')
             ->with(Screenshot::class, 'takeScreenshot', [$pageMock, $driverMock])
             ->willReturn($expectedScreenshotPath);
 
-        $this->dependencies['staticCallerMock']->expects($this->at(1))
+        $this->dependencies['staticCallerMock']->expects($this->at(2))
             ->method('call')
             ->with(JSDebug::class, 'getJsErrors', [$sessionMock])
             ->willReturn(['Undefined var: name']);
 
-        $this->dependencies['staticCallerMock']->expects($this->at(2))
+        $this->dependencies['staticCallerMock']->expects($this->at(3))
             ->method('call')
             ->with(JSDebug::class, 'getJsWarns', [$sessionMock])
             ->willReturn([]);
 
-        $this->dependencies['staticCallerMock']->expects($this->at(3))
+        $this->dependencies['staticCallerMock']->expects($this->at(4))
             ->method('call')
             ->with(JSDebug::class, 'getJsLogs', [$sessionMock])
             ->willReturn([]);
 
-        $this->dependencies['staticCallerMock']->expects($this->at(4))
+        $this->dependencies['staticCallerMock']->expects($this->at(5))
             ->method('call')
             ->with(Output::class, 'getExceptionDetails', [
                 $currentUrl,
@@ -491,8 +491,9 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
             ->method('getScenario')
             ->willReturn($scenarioMock);
         $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
-        $this->dependencies['staticCallerMock']->expects($this->at(4))
+        $this->dependencies['staticCallerMock']->expects($this->at(5))
             ->method('call')
+            ->with(Output::class, 'getExceptionDetails', $this->isType('array'))
             ->willReturn('[URL] http://site.dev/login');
 
         $result = $this->testObject
@@ -572,7 +573,7 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
             ->willReturn($scenarioMock);
         $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
 
-        $this->dependencies['staticCallerMock']->expects($this->at(4))
+        $this->dependencies['staticCallerMock']->expects($this->at(5))
             ->method('call')
             ->willReturn('[URL] http://site.dev/login');
 
