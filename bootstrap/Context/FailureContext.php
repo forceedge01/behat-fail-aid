@@ -133,12 +133,17 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
     public function iTakeAScreenshot()
     {
         $session = $this->getSession();
-        $screenshotPath = $this->staticCaller->call(Screenshot::class, 'takeScreenshot', [
-            $session->getPage(),
-            $session->getDriver()
-        ]);
+        try {
+            $this->staticCaller->call(Screenshot::class, 'canTakeScreenshot', [$session]);
+            $screenshotPath = $this->staticCaller->call(Screenshot::class, 'takeScreenshot', [
+                $session->getPage(),
+                $session->getDriver()
+            ]);
 
-        echo '[SCREENSHOT] ' . $screenshotPath;
+            echo '[SCREENSHOT] ' . $screenshotPath;
+        } catch (Exception $e) {
+            echo 'Unable to take screenshot: ' . $e->getMessage();
+        }
     }
 
     /**
@@ -396,6 +401,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
 
         $screenshotPath = null;
         try {
+            $this->staticCaller->call(Screenshot::class, 'canTakeScreenshot', [$session]);
             $screenshotPath = $this->staticCaller->call(Screenshot::class, 'takeScreenshot', [
                 $page,
                 $driver
@@ -416,7 +422,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
         }
 
         $jsErrors = $this->staticCaller->call(JSDebug::class, 'getJsErrors', [$session]);
-        $jsWarns = $this->staticCaller->call(JSDebug::class, 'getJsWarns', [$session]);;
+        $jsWarns = $this->staticCaller->call(JSDebug::class, 'getJsWarns', [$session]);
         $jsLogs = $this->staticCaller->call(JSDebug::class, 'getJsLogs', [$session]);
 
         $message = $this->staticCaller->call(Output::class, 'getExceptionDetails', [

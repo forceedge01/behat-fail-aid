@@ -4,7 +4,9 @@ Feature:
   I want to run the pack and see it in action
 
   Scenario: Check error output, generates 3 screenshots.
-    Given I am on the homepage
+    # Will fail as its being done before loading the page.
+    Given I take a screenshot
+    And I am on the homepage
     And I record the state of the user
     And I take a screenshot
     And I gather facts for the current state

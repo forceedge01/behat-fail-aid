@@ -4,6 +4,7 @@ namespace FailAid\Service;
 
 use Behat\Mink\Element\ElementInterface;
 use Behat\Mink\Exception\DriverException;
+use Behat\Mink\Session;
 use Exception;
 use FailAid\Context\Contracts\ScreenshotInterface;
 
@@ -127,10 +128,19 @@ class Screenshot implements ScreenshotInterface
         file_put_contents(self::$screenshotDir . $filename, $content);
 
         if (self::$screenshotHostDirectory) {
-            return 'file://' . rtrim(self::$screenshotHostDirectory, '/') . DIRECTORY_SEPARATOR . $filename;
+            return 'file://' . self::$screenshotHostDirectory . $filename;
         }
 
         return 'file://' . self::$screenshotDir . $filename;
+    }
+
+    public static function canTakeScreenshot(Session $session)
+    {
+        if($session->isStarted()) {
+            return true;
+        }
+
+        throw new Exception('Session has not started yet.');
     }
 
     /**
