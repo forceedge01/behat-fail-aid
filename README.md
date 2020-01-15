@@ -34,7 +34,7 @@ Major: Refactor, Controlled output, scenario debug cli, clear screenshots cli, h
 
 Minor: NA.
 
-Patch: NA.
+Patch: Display host directory for screenshot correctly, take screenshot only if session has started.
 
 Installation:
 -------------
