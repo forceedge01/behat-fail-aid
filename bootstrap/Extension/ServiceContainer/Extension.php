@@ -8,6 +8,7 @@ use Behat\Testwork\ServiceContainer\Extension as ExtensionInterface;
 use Behat\Testwork\ServiceContainer\ExtensionManager;
 use FailAid\Context\ClearScreenshots;
 use FailAid\Context\ScenarioDebugCli;
+use FailAid\Context\WaitOnFailure;
 use FailAid\Extension\Initializer\Initializer;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -151,6 +152,7 @@ class Extension implements ExtensionInterface
         $container->setDefinition(self::CONTEXT_INITIALISER, $definition);
         $this->addScenarioDebugCommand($container);
         $this->addAutoCleanCommand($container);
+        $this->addWaitOnFailureCommand($container);
     }
 
     private function addScenarioDebugCommand($container)
@@ -171,6 +173,16 @@ class Extension implements ExtensionInterface
         );
         $definition->addTag(CliExtension::CONTROLLER_TAG, array('priority' => 1));
         $container->setDefinition(CliExtension::CONTROLLER_TAG . '.failaid.clearScreenshots', $definition);
+    }
+
+    private function addWaitOnFailureCommand($container)
+    {
+        $definition = new Definition(
+            WaitOnFailure::class,
+            array(new Reference(self::CONTEXT_INITIALISER))
+        );
+        $definition->addTag(CliExtension::CONTROLLER_TAG, array('priority' => 1));
+        $container->setDefinition(CliExtension::CONTROLLER_TAG . '.failaid.waitOnFailure', $definition);
     }
 
     /**
