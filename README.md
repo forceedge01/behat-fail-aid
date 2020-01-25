@@ -53,6 +53,10 @@ The `--clear-screenshots` flag, if supplied will remove existing screenshots fro
 
 The `--scenario-debug` flag, if supplied will take attempt to screenshots after each step and display in the console to aid debugging. Best used when working on a single scenario along with the autoclean feature.
 
+### Wait on failure:
+
+the '--wait-on-failure=<seconds>' option can be used to investigate/inspect failures in the browser.
+
 Config/Usage:
 ------
 

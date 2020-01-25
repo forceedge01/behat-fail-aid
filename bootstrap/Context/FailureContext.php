@@ -79,6 +79,11 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
     private static $debugScenario = false;
 
     /**
+     * @var integer
+     */
+    private static $waitOnFailure = 0;
+
+    /**
      * @var boolean
      */
     private static $autoClean = false;
@@ -279,10 +284,28 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
                     );
                 }
 
+                if (self::$waitOnFailure) {
+                    echo sprintf('Waiting on failure for %d seconds', self::$waitOnFailure) . PHP_EOL;
+                }
+
                 return $message;
             } catch (DriverException $e) {
                 // The driver is not available, dont fail - allow behat to print out the actual error message.
                 echo 'Error message: ' . $e->getMessage();
+            }
+        }
+
+        self::$exceptionHash = null;
+    }
+
+    /**
+     * @AfterScenario
+     */
+    public function waitOnFailure()
+    {
+        if (self::$exceptionHash) {
+            if (self::$waitOnFailure) {
+                sleep(self::$waitOnFailure);
             }
         }
     }
@@ -290,6 +313,11 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
     public static function setDebugScenario($bool)
     {
         self::$debugScenario = $bool;
+    }
+
+    public static function setWaitOnFailure($time)
+    {
+        self::$waitOnFailure = (int) $time;
     }
 
     public static function clearDir($directory)
