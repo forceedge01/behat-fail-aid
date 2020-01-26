@@ -32,9 +32,9 @@ Whats new:
 
 Major: Refactor, Controlled output, scenario debug cli, clear screenshots cli, host machine screenshot url.
 
-Minor: NA.
+Minor: Scenario tags (including inherited from feature) exposed in fail summary.
 
-Patch: Display host directory for screenshot correctly, take screenshot only if session has started.
+Patch: NA.
 
 Installation:
 -------------
@@ -82,6 +82,7 @@ You can control the verbosity of the aid text from the config file. By default, 
     output:
         url: false
         status: false
+        tags: false
         feature: false
         context: false
         screenshot: false
