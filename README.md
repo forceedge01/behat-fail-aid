@@ -32,7 +32,7 @@ Whats new:
 
 Major: Refactor, Controlled output, scenario debug cli, clear screenshots cli, host machine screenshot url.
 
-Minor: Scenario tags (including inherited from feature) exposed in fail summary.
+Minor: Scenario tags exposed in fail summary.
 
 Patch: NA.
 
