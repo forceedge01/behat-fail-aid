@@ -47,6 +47,10 @@ class Output
             $message .= '[FEATURE] ' . $featureFile . PHP_EOL;
         }
 
+        if (self::getOption('tags')) {
+            $message .= '[TAGS] ' . implode(', ', $scenario->getScenario()->getTags()) . PHP_EOL;
+        }
+
         if (self::getOption('context')) {
             $message .= '[CONTEXT] ' . $contextFile . PHP_EOL;
         }

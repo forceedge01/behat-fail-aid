@@ -56,6 +56,9 @@ Info: clearly not equal.';
         $scenarioMock->expects($this->any())
             ->method('getLine')
             ->willReturn($expectedLineNumber);
+        $scenarioMock->expects($this->any())
+            ->method('getTags')
+            ->willReturn(['first', 'second']);
         $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
         $currentScenarioMock->expects($this->any())
             ->method('getScenario')
@@ -68,6 +71,7 @@ Info: clearly not equal.';
             'context' => true,
             'screenshot' => true,
             'driver' => true,
+            'tags' => true,
             'rerun' => true,
         ]);
         $result = Output::getExceptionDetails(
@@ -89,6 +93,7 @@ Info: clearly not equal.';
 [URL] http://site.dev/
 [STATUS] 500
 [FEATURE] features/login.feature
+[TAGS] first, second
 [CONTEXT] /Assertions/WebAssert.php
 [SCREENSHOT] /private/var/tmp/2873438.png
 [DRIVER] Behat\Mink\Driver\DriverInterface
@@ -136,6 +141,9 @@ Info: clearly not equal.';
         $scenarioMock->expects($this->any())
             ->method('getLine')
             ->willReturn($expectedLineNumber);
+        $scenarioMock->expects($this->any())
+            ->method('getTags')
+            ->willReturn([]);
         $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
         $currentScenarioMock->expects($this->any())
             ->method('getScenario')
@@ -145,6 +153,7 @@ Info: clearly not equal.';
             'url' => true,
             'status' => true,
             'feature' => false,
+            'tags' => true,
             'context' => true,
             'screenshot' => false,
             'driver' => true,
@@ -168,6 +177,7 @@ Info: clearly not equal.';
 
 [URL] http://site.dev/
 [STATUS] 500
+[TAGS] 
 [CONTEXT] /Assertions/WebAssert.php
 [DRIVER] Behat\Mink\Driver\DriverInterface
 

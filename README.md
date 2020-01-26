@@ -8,13 +8,13 @@ Time and time again we've all seen how difficult and stressful it can become to 
 all possible information around failures and print them as you see a failure taking out the need to do basic investigations with minimal setup.
 
 Usual failure
-![Before](https://raw.githubusercontent.com/forceedge01/behat-fail-aid/master/extras/generic-from.png)
+![Before](https://raw.githubusercontent.com/forceedge01/behat-fail-aid/master/extras/generic-from.png#version=1)
 
 With fail-aid context
-![After](https://raw.githubusercontent.com/forceedge01/behat-fail-aid/master/extras/generic-to.png)
+![After](https://raw.githubusercontent.com/forceedge01/behat-fail-aid/master/extras/generic-to.png#version=1)
 
 With config options enabled
-![More info](https://raw.githubusercontent.com/forceedge01/behat-fail-aid/master/extras/max-details.png)
+![More info](https://raw.githubusercontent.com/forceedge01/behat-fail-aid/master/extras/max-details.png#version=1)
 
 The links are ready to be clicked on and opened in the browser. No faff!
 
@@ -32,9 +32,9 @@ Whats new:
 
 Major: Refactor, Controlled output, scenario debug cli, clear screenshots cli, host machine screenshot url.
 
-Minor: NA.
+Minor: Scenario tags exposed in fail summary.
 
-Patch: Display host directory for screenshot correctly, take screenshot only if session has started.
+Patch: NA.
 
 Installation:
 -------------
@@ -82,6 +82,7 @@ You can control the verbosity of the aid text from the config file. By default, 
     output:
         url: false
         status: false
+        tags: false
         feature: false
         context: false
         screenshot: false

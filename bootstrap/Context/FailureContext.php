@@ -4,6 +4,7 @@ namespace FailAid\Context;
 
 use Behat\Behat\Context\Context;
 use Behat\Behat\Hook\Scope\AfterStepScope;
+use Behat\Behat\Hook\Scope\ScenarioScope;
 use Behat\MinkExtension\Context\MinkAwareContext;
 use Behat\Mink\Driver\DriverInterface;
 use Behat\Mink\Element\DocumentElement;
@@ -166,7 +167,8 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
             $driver,
             $this->debugBarSelectors,
             'NA',
-            'NA'
+            'NA',
+            $this->currentScenario
         );
     }
 
@@ -272,7 +274,8 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
                             $driver,
                             $this->debugBarSelectors,
                             $scope->getFeature()->getFile(),
-                            $exception->getFile()
+                            $exception->getFile(),
+                            $this->currentScenario
                         );
                     }
 
@@ -407,7 +410,8 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
         DriverInterface $driver,
         array $debugBarSelectors,
         $featureFile,
-        $exceptionFile
+        $exceptionFile,
+        ScenarioScope $scenario
     ) {
         $message = null;
         $page = $session->getPage();
@@ -464,7 +468,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
             $jsLogs,
             $jsWarns,
             get_class($driver),
-            $this->currentScenario
+            $scenario
         ]);
 
         return $message;
