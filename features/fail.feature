@@ -16,7 +16,7 @@ Feature:
     And I am on the homepage
     And I record the state of the user
     And I take a screenshot
-    And I gather facts for the current state
+    When I gather facts for the current state
     Then I should see "Yo hello this will fail"
 
   Scenario: Just another scenario to test session bleed
