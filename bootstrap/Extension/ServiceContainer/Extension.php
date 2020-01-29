@@ -7,6 +7,7 @@ use Behat\Testwork\Cli\ServiceContainer\CliExtension;
 use Behat\Testwork\ServiceContainer\Extension as ExtensionInterface;
 use Behat\Testwork\ServiceContainer\ExtensionManager;
 use FailAid\Context\ClearScreenshots;
+use FailAid\Context\FeedbackOnFailure;
 use FailAid\Context\ScenarioDebugCli;
 use FailAid\Context\WaitOnFailure;
 use FailAid\Extension\Initializer\Initializer;
@@ -72,6 +73,7 @@ class Extension implements ExtensionInterface
                         ->scalarNode('size')->defaultNull()->end()
                         ->scalarNode('autoClean')->defaultValue(false)->end()
                         ->scalarNode('hostDirectory')->defaultNull()->end()
+                        ->scalarNode('hostUrl')->defaultNull()->end()
                     ->end()
                 ->end()
                 ->arrayNode('output')
@@ -153,6 +155,7 @@ class Extension implements ExtensionInterface
         $this->addScenarioDebugCommand($container);
         $this->addAutoCleanCommand($container);
         $this->addWaitOnFailureCommand($container);
+        $this->addFeedbackOnFailureCommand($container);
     }
 
     private function addScenarioDebugCommand($container)
@@ -183,6 +186,16 @@ class Extension implements ExtensionInterface
         );
         $definition->addTag(CliExtension::CONTROLLER_TAG, array('priority' => 1));
         $container->setDefinition(CliExtension::CONTROLLER_TAG . '.failaid.waitOnFailure', $definition);
+    }
+
+    private function addFeedbackOnFailureCommand($container)
+    {
+        $definition = new Definition(
+            FeedbackOnFailure::class,
+            array(new Reference(self::CONTEXT_INITIALISER))
+        );
+        $definition->addTag(CliExtension::CONTROLLER_TAG, array('priority' => 1));
+        $container->setDefinition(CliExtension::CONTROLLER_TAG . '.failaid.feedbackOnFailure', $definition);
     }
 
     /**

@@ -16,11 +16,17 @@ use Exception;
 use FailAid\Service\Screenshot;
 use PHPUnit_Framework_TestCase;
 
+/**
+ * @group screenshotTests
+ */
 class ScreenshotTest extends PHPUnit_Framework_TestCase
 {
     public function setUp()
     {
-        Screenshot::setOptions([], []);
+        Screenshot::setOptions([
+            'hostDirectory' => null,
+            'hostUrl' => null,
+        ], []);
     }
 
     public function testSetOptions()
@@ -124,6 +130,30 @@ class ScreenshotTest extends PHPUnit_Framework_TestCase
         $result = Screenshot::takeScreenshot($page, $driver);
 
         self::assertEquals('png', pathinfo($result, PATHINFO_EXTENSION));
+    }
+
+    public function testTakeScreenshotWithHostUrl()
+    {
+        $options = [
+            'directory' => null,
+            'mode' => 'html',
+            'autoClean' => true,
+            'size' => '1024x2000',
+            'hostUrl' => 'http://ci/failures/'
+        ];
+        $siteFilters = [];
+
+        $filename = '/file/name-';
+        $page = $this->getMockBuilder(Element::class)->disableOriginalConstructor()->getMock();
+        $page->expects($this->any())
+            ->method('getOuterHtml')
+            ->willReturn('<html></html>');
+        $driver = $this->getMockBuilder(Selenium2Driver::class)->getMock();
+
+        Screenshot::setOptions($options, $siteFilters);
+        $result = Screenshot::takeScreenshot($page, $driver);
+
+        self::assertRegExp('#http://ci/failures/.+\.html#', $result);
     }
 
     public function testApplySiteSpecificFilters()

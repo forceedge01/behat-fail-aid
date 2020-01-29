@@ -45,6 +45,11 @@ class Screenshot implements ScreenshotInterface
     public static $screenshotHostDirectory;
 
     /**
+     * @var string
+     */
+    public static $screenshotHostUrl;
+
+    /**
      * @var array
      */
     public static $siteFilters;
@@ -74,6 +79,16 @@ class Screenshot implements ScreenshotInterface
             self::$screenshotHostDirectory = rtrim($options['hostDirectory'], DIRECTORY_SEPARATOR) .
                 DIRECTORY_SEPARATOR .
                 date('Ymd-');
+        } else {
+            self::$screenshotHostDirectory = null;
+        }
+
+        if (isset($options['hostUrl'])) {
+            self::$screenshotHostUrl = rtrim($options['hostUrl'], DIRECTORY_SEPARATOR) .
+                DIRECTORY_SEPARATOR .
+                date('Ymd-');
+        } else {
+            self::$screenshotHostUrl = null;
         }
 
         self::$siteFilters = $siteFilters;
@@ -129,6 +144,8 @@ class Screenshot implements ScreenshotInterface
 
         if (self::$screenshotHostDirectory) {
             return 'file://' . self::$screenshotHostDirectory . $filename;
+        } elseif (self::$screenshotHostUrl) {
+            return self::$screenshotHostUrl . $filename;
         }
 
         return 'file://' . self::$screenshotDir . $filename;

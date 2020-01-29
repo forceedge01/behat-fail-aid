@@ -32,7 +32,7 @@ Whats new:
 
 Major: Refactor, Controlled output, scenario debug cli, clear screenshots cli, host machine screenshot url.
 
-Minor: Scenario tags exposed in fail summary.
+Minor: Immediate feedback on failure flag, debug bar callback option, screenshot host url.
 
 Patch: NA.
 
@@ -55,7 +55,11 @@ The `--scenario-debug` flag, if supplied will take attempt to screenshots after 
 
 ### Wait on failure:
 
-the '--wait-on-failure=<seconds>' option can be used to investigate/inspect failures in the browser.
+the `--wait-on-failure={seconds}` option can be used to investigate/inspect failures in the browser.
+
+### Feedback on failure:
+
+the `--feedback-on-failure` flag can be used to print failures as soon as they occur. This is useful when using the progress formatter for example in long running test packs such as CI.
 
 Config/Usage:
 ------
@@ -103,6 +107,7 @@ screenshot options:
         autoClean: false
         size: 1444x1280
         hostDirectory: /tmp/failures/
+        hostUrl: http://abc/failures/
 ```
 
 ### directory (string):
@@ -123,6 +128,9 @@ The size of the screenshot to be taken on failure. At present, does not reset th
 
 ### hostDirectory (string):
 If running against a VM or container, you can set this path to the screenshots directory on the host machine. The screenshots will be produced the same, the output will be for your host machine instead.
+
+### HostUrl (string):
+If running on a remote environment it may be that the failures are available on a url.
 
 siteFilters option:
 --------------------
@@ -195,6 +203,8 @@ debugBarSelectors option:
       'Status Code': '#debugBar .statusCode'
       'Error Message': '#debugBar .errorMessage'
       'Queries Executed': '#debugBar .executedQueries'
+      xhrRequests:
+        callback: MyXhrRequestsInfoExtractor::extract
 ```
 
 The above will go through each of the selector and find the element. If the element is found, it will display the text contained in the failure output. The debug bar details are gather after taking a screenshot of the page, so its safe to navigate out to another page if needs be. If you have to do this, have a look at the 'Advanced Integration' section for more information.
