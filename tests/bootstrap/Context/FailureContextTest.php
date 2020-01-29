@@ -621,6 +621,44 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
 ', $result);
     }
 
+    public function testGatherDebugBarDetailsCallback()
+    {
+        $debugBarSelectors = [
+            'xhrRequests' => [
+                'callback' => FailureContextTest::class . '::extract',
+            ],
+        ];
+
+        $elementMock = $this->getMockBuilder(ElementInterface::class)->getMock();
+        $elementMock->expects($this->any())
+            ->method('getText')
+            ->willReturn('Page not found.');
+
+        $elementMock2 = $this->getMockBuilder(ElementInterface::class)->getMock();
+        $elementMock2->expects($this->any())
+            ->method('getText')
+            ->willReturn('Unable to execute query.');
+
+        $page = $this->getMockBuilder(DocumentElement::class)->disableOriginalConstructor()->getMock();
+
+        $result = $this->callProtectedMethod('gatherDebugBarDetails', [$debugBarSelectors, $page]);
+
+        self::assertEquals('  [XHRREQUESTS] Found xhr requests
+', $result);
+    }
+
+    /**
+     * Test method for debug bar selector callback test.
+     *
+     * @param PageElement $page
+     *
+     * @return string
+     */
+    public static function extract(DocumentElement $page)
+    {
+        return 'Found xhr requests';
+    }
+
     public function testGatherDebugBarDetailsAllNotFound()
     {
         $debugBarSelectors = [

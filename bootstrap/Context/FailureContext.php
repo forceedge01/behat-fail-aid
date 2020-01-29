@@ -89,6 +89,11 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
      */
     private static $autoClean = false;
 
+    /**
+     * @var boolean
+     */
+    private static $feedbackOnFailure = false;
+
     private $staticCaller;
 
     /**
@@ -291,6 +296,11 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
                     echo sprintf('Waiting on failure for %d seconds', self::$waitOnFailure) . PHP_EOL;
                 }
 
+                if (self::$feedbackOnFailure) {
+                    echo PHP_EOL . '-- FAIL --' . PHP_EOL . $exception->getMessage();
+                    ob_flush();
+                }
+
                 return $message;
             } catch (DriverException $e) {
                 // The driver is not available, dont fail - allow behat to print out the actual error message.
@@ -321,6 +331,11 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
     public static function setWaitOnFailure($time)
     {
         self::$waitOnFailure = (int) $time;
+    }
+
+    public static function setFeedbackOnFailure($bool)
+    {
+        self::$feedbackOnFailure = $bool;
     }
 
     public static function clearDir($directory)
@@ -525,7 +540,13 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
         $details = '';
         foreach ($debugBarSelectors as $name => $selector) {
             $details .= '  [' . strtoupper($name) . '] ';
-            if ($detailText = $page->find('css', $selector)) {
+            if (is_array($selector)) {
+                if (!isset($selector['callback'])) {
+                    throw new Exception('Debug bar selector if array must have callback specified.');
+                }
+                list($class, $method) = explode('::', $selector['callback'], 2);
+                $details .= $class::$method($page);
+            } elseif ($detailText = $page->find('css', $selector)) {
                 $details .= $detailText->getText();
             } else {
                 $details .= 'Element "' . $selector . '" Not Found.';
