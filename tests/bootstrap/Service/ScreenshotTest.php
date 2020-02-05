@@ -36,12 +36,16 @@ class ScreenshotTest extends PHPUnit_Framework_TestCase
             'mode' => 'html',
             'autoClean' => true,
             'size' => '1024x2000',
-            'hostDirectory' => '/abc/123/'
+            'hostDirectory' => '/abc/123/$BRANCH_NAME/$USER/'
         ];
         $siteFilters = [
             'abc' => '123',
             'xyz' => '789'
         ];
+
+        $expectedHostDirectory = '/abc/123/master/abdul/123';
+        putenv('BRANCH_NAME=master');
+        putenv('USER=abdul');
 
         Screenshot::setOptions($options, $siteFilters);
 
@@ -50,7 +54,7 @@ class ScreenshotTest extends PHPUnit_Framework_TestCase
         self::assertEquals($options['mode'], Screenshot::$screenshotMode);
         self::assertEquals($options['autoClean'], Screenshot::$screenshotAutoClean);
         self::assertEquals(['1024', '2000'], Screenshot::$screenshotSize);
-        self::assertEquals($options['hostDirectory'] . '123', Screenshot::$screenshotHostDirectory);
+        self::assertEquals($expectedHostDirectory, Screenshot::$screenshotHostDirectory);
     }
 
     /**
@@ -139,7 +143,7 @@ class ScreenshotTest extends PHPUnit_Framework_TestCase
             'mode' => 'html',
             'autoClean' => true,
             'size' => '1024x2000',
-            'hostUrl' => 'http://ci/failures/'
+            'hostUrl' => 'http://ci/failures/$JOB_NUMBER/'
         ];
         $siteFilters = [];
 
@@ -150,10 +154,13 @@ class ScreenshotTest extends PHPUnit_Framework_TestCase
             ->willReturn('<html></html>');
         $driver = $this->getMockBuilder(Selenium2Driver::class)->getMock();
 
+        $jobNumber = 99238843;
+        putenv('JOB_NUMBER=' . $jobNumber);
+
         Screenshot::setOptions($options, $siteFilters);
         $result = Screenshot::takeScreenshot($page, $driver);
 
-        self::assertRegExp('#http://ci/failures/.+\.html#', $result);
+        self::assertRegExp('#http://ci/failures/99238843/.+\.html#', $result);
     }
 
     public function testApplySiteSpecificFilters()
