@@ -76,7 +76,7 @@ class Screenshot implements ScreenshotInterface
         }
 
         if (isset($options['hostDirectory'])) {
-            self::$screenshotHostDirectory = rtrim($options['hostDirectory'], DIRECTORY_SEPARATOR) .
+            self::$screenshotHostDirectory = rtrim(self::resolveEnvVarsInString($options['hostDirectory']), DIRECTORY_SEPARATOR) .
                 DIRECTORY_SEPARATOR .
                 date('Ymd-');
         } else {
@@ -84,7 +84,7 @@ class Screenshot implements ScreenshotInterface
         }
 
         if (isset($options['hostUrl'])) {
-            self::$screenshotHostUrl = rtrim($options['hostUrl'], DIRECTORY_SEPARATOR) .
+            self::$screenshotHostUrl = rtrim(self::resolveEnvVarsInString($options['hostUrl']), DIRECTORY_SEPARATOR) .
                 DIRECTORY_SEPARATOR .
                 date('Ymd-');
         } else {
@@ -92,6 +92,11 @@ class Screenshot implements ScreenshotInterface
         }
 
         self::$siteFilters = $siteFilters;
+    }
+
+    public static function resolveEnvVarsInString($string)
+    {
+        return rtrim(shell_exec("echo $string"), PHP_EOL);
     }
 
     /**

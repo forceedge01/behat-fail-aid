@@ -13,7 +13,7 @@ default:
         autoClean: false
         size: 1444x1280
         # hostDirectory: /home/abdul/Projects/personal/behat-fail-aid/features/failures
-        hostUrl: http://ci/failures/
+        hostUrl: http://ci/failures/$USER/
       debugBarSelectors:
         message: '#debugBar .message'
         queries: '#debugBar .queries'

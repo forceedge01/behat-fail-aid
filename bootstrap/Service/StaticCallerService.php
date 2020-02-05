@@ -7,7 +7,8 @@ namespace FailAid\Service;
  */
 class StaticCallerService
 {
-    public function call($class, $function, array $params = []) {
+    public function call($class, $function, array $params = [])
+    {
         return call_user_func_array("$class::$function", $params);
     }
 }
