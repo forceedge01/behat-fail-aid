@@ -32,7 +32,7 @@ Whats new:
 
 Major: Refactor, Controlled output, scenario debug cli, clear screenshots cli, host machine screenshot url.
 
-Minor: Immediate feedback on failure flag, debug bar callback option, screenshot host url.
+Minor: Resolve environment variables for hostUrl and hostDirectory options.
 
 Patch: NA.
 
@@ -106,8 +106,8 @@ screenshot options:
         mode: default
         autoClean: false
         size: 1444x1280
-        hostDirectory: /tmp/failures/
-        hostUrl: http://abc/failures/
+        hostDirectory: /tmp/$USER/failures/
+        hostUrl: http://ci/failures/$BRANCH_NAME/$JOB_NUMBER/failures/
 ```
 
 ### directory (string):
@@ -127,10 +127,10 @@ Clean up the directory before the test suite runs.
 The size of the screenshot to be taken on failure. At present, does not reset the size of the window. May conflict with the maximiseWindow API.
 
 ### hostDirectory (string):
-If running against a VM or container, you can set this path to the screenshots directory on the host machine. The screenshots will be produced the same, the output will be for your host machine instead.
+If running against a VM or container, you can set this path to the screenshots directory on the host machine. The screenshots will be produced the same, the output will be for your host machine instead. Resolves environment variables.
 
 ### HostUrl (string):
-If running on a remote environment it may be that the failures are available on a url.
+If running on a remote environment it may be that the failures are available on a url. Resolves environment variables.
 
 siteFilters option:
 --------------------
