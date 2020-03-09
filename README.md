@@ -32,7 +32,10 @@ Whats new:
 
 Major: Refactor, Controlled output, scenario debug cli, clear screenshots cli, host machine screenshot url.
 
-Minor: Resolve environment variables for hostUrl and hostDirectory options.
+Minor: 
+- Resolve environment variables for hostUrl and hostDirectory options.
+- Execute screenshot code only if requested in output.
+- Override output parameters through individual context file params.
 
 Patch: NA.
 
@@ -64,7 +67,7 @@ the `--feedback-on-failure` flag can be used to print failures as soon as they o
 Config/Usage:
 ------
 
-```gherkin
+```yml
 #behat.yml
 default:
   suites:
@@ -81,9 +84,11 @@ Output options:
 ----------------------------
 You can control the verbosity of the aid text from the config file. By default, all options are enabled.
 
-```
-- FailAid\Extension:
-    output:
+```yml
+default:
+  extensions:
+    FailAid\Extension:
+      output:
         url: false
         status: false
         tags: false
@@ -92,6 +97,26 @@ You can control the verbosity of the aid text from the config file. By default, 
         screenshot: false
         driver: false
         rerun: false
+```
+
+These params can be overridden for each FailureContext declaration in behat.yml
+
+```yml
+#behat.yml
+default:
+  suites:
+    web:
+      contexts:
+        - FailAid\Context\FailureContext
+    API:
+      contexts:
+        - FailAid\Context\FailureContext
+          - output:
+            screenshot: false
+  extensions:
+  - FailAid\Extension:
+    output:
+      screenshot: true
 ```
 
 screenshot options:

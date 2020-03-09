@@ -94,13 +94,18 @@ class Output
         return $message;
     }
 
-    private static function getOption($key)
+    public static function getOption($key)
     {
         if (!isset(self::$output[$key])) {
             throw new Exception("Undefined output option '$key' provided.");
         }
 
         return self::$output[$key];
+    }
+
+    public static function setOption($key, $value)
+    {
+        self::$output[$key] = $value;
     }
 
     /**
