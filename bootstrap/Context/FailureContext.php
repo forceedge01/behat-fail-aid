@@ -94,6 +94,14 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
      */
     private static $feedbackOnFailure = false;
 
+    /**
+     * @var array
+     */
+    private $outputOptions = [];
+
+    /**
+     * @var StaticCallerService
+     */
     private $staticCaller;
 
     /**
@@ -102,10 +110,14 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
      * Every scenario gets its own context instance.
      * You can also pass arbitrary arguments to the
      * context constructor through behat.yml.
+     *
+     * @param array $output Overridable output param for each context.
      */
-    public function __construct()
+    public function __construct(array $output = [])
     {
         date_default_timezone_set('Europe/London');
+
+        $this->outputOptions = $output;
     }
 
     public function setStaticCaller(StaticCallerService $staticCaller)
@@ -134,8 +146,14 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
         $this->debugBarSelectors = $debugBarSelectors;
         $this->defaultSession = $defaultSession;
         $this->staticCaller->call(Screenshot::class, 'setOptions', [$screenshot, $siteFilters]);
-        $this->staticCaller->call(Output::class, 'setOptions', [$outputOptions]);
         $this->staticCaller->call(JSDebug::class, 'setOptions', [$trackJs]);
+        $this->staticCaller->call(Output::class, 'setOptions', [$outputOptions]);
+
+        if ($this->outputOptions) {
+            foreach ($this->outputOptions as $option => $value) {
+                $this->staticCaller->call(Output::class, 'setOption', [$option, $value]);
+            }
+        }
     }
 
     /**
@@ -163,12 +181,10 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
     public function iGatherFactsForTheCurrentState()
     {
         $session = $this->getSession();
-        $page = $session->getPage();
         $driver = $session->getDriver();
 
         echo $this->gatherFacts(
             $session,
-            $page,
             $driver,
             $this->debugBarSelectors,
             'NA',
@@ -261,28 +277,25 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
                     $exception = $scope->getTestResult()->getException();
 
                     $message = '';
-                    try {
-                        $this->getSession()->getPage()->getOuterHtml();
-                    } catch (\WebDriver\Exception\NoSuchElement $e) {
-                        $message = PHP_EOL . PHP_EOL . 'The page is blank, is the driver/browser ready to receive the request?';
+                    if ($this->staticCaller->call(Output::class, 'getOption', ['screenshot'])) {
+                        try {
+                            $this->getSession()->getPage()->getOuterHtml();
+                        } catch (\WebDriver\Exception\NoSuchElement $e) {
+                            $message = PHP_EOL . PHP_EOL . 'The page is blank, is the driver/browser ready to receive the request?';
+                        }
                     }
 
-                    $mink = $this->getMink();
-                    if ($mink) {
-                        $session = $this->getSession();
-                        $page = $session->getPage();
-                        $driver = $session->getDriver();
+                    $session = $this->getSession();
+                    $driver = $session->getDriver();
 
-                        $message .= $this->gatherFacts(
-                            $session,
-                            $page,
-                            $driver,
-                            $this->debugBarSelectors,
-                            $scope->getFeature()->getFile(),
-                            $exception->getFile(),
-                            $this->currentScenario
-                        );
-                    }
+                    $message .= $this->gatherFacts(
+                        $session,
+                        $driver,
+                        $this->debugBarSelectors,
+                        $scope->getFeature()->getFile(),
+                        $exception->getFile(),
+                        $this->currentScenario
+                    );
 
                     $message = $this->addStateDetails($message, $this->getStateDetails(self::$states));
 
@@ -421,7 +434,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
      */
     private function gatherFacts(
         Session $session,
-        DocumentElement $page,
         DriverInterface $driver,
         array $debugBarSelectors,
         $featureFile,
@@ -429,7 +441,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
         ScenarioScope $scenario
     ) {
         $message = null;
-        $page = $session->getPage();
         $driver = $session->getDriver();
 
         $currentUrl = null;
@@ -447,25 +458,29 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
         }
 
         $screenshotPath = null;
-        try {
-            $this->staticCaller->call(Screenshot::class, 'canTakeScreenshot', [$session]);
-            $screenshotPath = $this->staticCaller->call(Screenshot::class, 'takeScreenshot', [
-                $page,
-                $driver
-            ]);
-        } catch (Exception $e) {
-            // Doesn't work.
-            $screenshotPath = 'Unable to produce screenshot: ' . $e->getMessage();
+        if ($this->staticCaller->call(Output::class, 'getOption', ['screenshot'])) {
+            try {
+                $this->staticCaller->call(Screenshot::class, 'canTakeScreenshot', [$session]);
+                $screenshotPath = $this->staticCaller->call(Screenshot::class, 'takeScreenshot', [
+                    $session->getPage(),
+                    $driver
+                ]);
+            } catch (Exception $e) {
+                // Doesn't work.
+                $screenshotPath = 'Unable to produce screenshot: ' . $e->getMessage();
+            }
         }
 
         $debugBarDetails = '';
-        try {
-            $debugBarDetails = $this->gatherDebugBarDetails(
-                $debugBarSelectors,
-                $page
-            );
-        } catch (Exeption $e) {
-            $debugBarDetails = 'Unable to capture debug bar details: ' . $e->getMessage();
+        if ($debugBarSelectors) {
+            try {
+                $debugBarDetails = $this->gatherDebugBarDetails(
+                    $debugBarSelectors,
+                    $session->getPage()
+                );
+            } catch (Exeption $e) {
+                $debugBarDetails = 'Unable to capture debug bar details: ' . $e->getMessage();
+            }
         }
 
         $jsErrors = $this->staticCaller->call(JSDebug::class, 'getJsErrors', [$session]);

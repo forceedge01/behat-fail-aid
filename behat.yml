@@ -1,5 +1,13 @@
 default:
   suites:
+    default:
+      contexts:
+        - FeatureContext
+        - Behat\MinkExtension\Context\MinkContext
+        - FailAid\Context\FailureContext:
+          - output:
+            screenshot: false
+            status: false
     generic-php55:
       contexts:
         - FeatureContext
@@ -7,6 +15,8 @@ default:
         - FailAid\Context\FailureContext
   extensions:
     FailAid\Extension:
+      output:
+        tags: false
       screenshot:
         directory: ./features/failures
         mode: default
