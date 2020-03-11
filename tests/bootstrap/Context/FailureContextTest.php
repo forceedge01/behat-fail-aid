@@ -380,13 +380,20 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
     {
         $featureFile = 'my/example/scenarios.feature';
         $exceptionMessage = 'something went wrong';
+        $exceptionFile = '/abc/23243234234/Service.php';
         $currentUrl = 'http://site.dev/login';
         $statusCode = 200;
         $html = '<html><body>Hello World</body></html>';
         $expectedLineNumber = 79;
 
+        $exceptionMock = $this->getMockBuilder(Exception::class)->getMock();
+        $exceptionMock->expects($this->never())->method('getMessage');
+
+        // Exception object has final method which are not mockable by phpunit.
+        $this->setObjectPrivatePropertyValue($exceptionMock, 'file', $exceptionFile);
         $scope = $this->getAfterStepScopeWithMockedParams();
         $scope->getTestResult()->expects($this->once())->method('getResultCode')->willReturn(TestResult::FAILED);
+        $scope->getTestResult()->expects($this->atLeastOnce())->method('getException')->willReturn($exceptionMock);
         $scope->getTestResult()->expects($this->atLeastOnce())->method('getException')
             ->willReturn(new Exception($exceptionMessage));
         $scope->getFeature()->expects($this->atLeastOnce())->method('getFile')->willReturn($featureFile);
@@ -444,7 +451,7 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
                 null,
                 null,
                 $featureFile,
-                '/home/abdul/Projects/personal/behat-fail-aid/tests/bootstrap/Context/FailureContextTest.php',
+                $exceptionFile,
                 null,
                 '  [MESSAGE] A registered service was not found.
   [QUERIES] Element "#debugBar .queries" Not Found.
@@ -468,13 +475,19 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
     {
         $featureFile = 'my/example/scenarios.feature';
         $exceptionMessage = 'something went wrong';
+        $exceptionFile = '/abc/23243234234/Service.php';
         $currentUrl = 'http://site.dev/login';
         $statusCode = 200;
         $html = '<html><body>Hello World</body></html>';
         $expectedLineNumber = 99;
 
+        $exceptionMock = $this->getMockBuilder(Exception::class)->getMock();
+        $exceptionMock->expects($this->never())->method('getMessage');
+
+        $this->setObjectPrivatePropertyValue($exceptionMock, 'file', $exceptionFile);
         $scope = $this->getAfterStepScopeWithMockedParams();
         $scope->getTestResult()->expects($this->once())->method('getResultCode')->willReturn(TestResult::FAILED);
+        $scope->getTestResult()->expects($this->atLeastOnce())->method('getException')->willReturn($exceptionMock);
         $scope->getTestResult()->expects($this->atLeastOnce())->method('getException')
             ->willReturn(new Exception($exceptionMessage));
         $scope->getFeature()->expects($this->atLeastOnce())->method('getFile')->willReturn($featureFile);
@@ -511,7 +524,7 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
             null,
             null,
             $featureFile,
-            '/home/abdul/Projects/personal/behat-fail-aid/tests/bootstrap/Context/FailureContextTest.php',
+            $exceptionFile,
             null,
             '',
             null,
