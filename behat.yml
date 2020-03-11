@@ -8,6 +8,7 @@ default:
           - output:
             screenshot: false
             status: false
+            debugBarSelectors: false
     generic-php55:
       contexts:
         - FeatureContext

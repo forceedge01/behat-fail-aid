@@ -36,6 +36,7 @@ Minor:
 - Resolve environment variables for hostUrl and hostDirectory options.
 - Execute screenshot code only if requested in output.
 - Override output parameters through individual context file params.
+- Override more output parameters.
 
 Patch: NA.
 
@@ -97,6 +98,7 @@ default:
         screenshot: false
         driver: false
         rerun: false
+        debugBarSelectors: false
 ```
 
 These params can be overridden for each FailureContext declaration in behat.yml

@@ -72,22 +72,21 @@ class Output
                 . PHP_EOL;
         }
 
-        $message .= PHP_EOL;
         $glue = PHP_EOL . '------' . PHP_EOL;
         if ($jsErrors) {
-            $message .= '[JSERRORS] ' . implode($glue, $jsErrors) . PHP_EOL . PHP_EOL;
+            $message .= PHP_EOL . '[JSERRORS] ' . implode($glue, $jsErrors) . PHP_EOL;
         }
 
         if ($jsWarns) {
-            $message .= '[JSWARNS] ' . implode($glue, $jsWarns) . PHP_EOL . PHP_EOL;
+            $message .= PHP_EOL . '[JSWARNS] ' . implode($glue, $jsWarns) . PHP_EOL;
         }
 
         if ($jsLogs) {
-            $message .= '[JSLOGS] ' . implode($glue, $jsLogs) . PHP_EOL . PHP_EOL;
+            $message .= PHP_EOL . '[JSLOGS] ' . implode($glue, $jsLogs) . PHP_EOL;
         }
 
         if ($debugBarDetails) {
-            $message .= '[DEBUG BAR INFO]' . PHP_EOL;
+            $message .= PHP_EOL . '[DEBUG BAR INFO]' . PHP_EOL;
             $message .= $debugBarDetails;
         }
 

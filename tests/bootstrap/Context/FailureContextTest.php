@@ -23,7 +23,6 @@ use Behat\Gherkin\Node\StepNode;
 use Behat\Mink\Driver\DriverInterface;
 use Behat\Mink\Element\DocumentElement;
 use Behat\Mink\Element\ElementInterface;
-use Behat\Mink\Exception\DriverException;
 use Behat\Mink\Mink;
 use Behat\Mink\Session;
 use Behat\Testwork\Environment\Environment;
@@ -77,6 +76,11 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
     private $dependencies = [];
 
     /**
+     * @var [type]
+     */
+    private $at;
+
+    /**
      * Set up the testing object.
      */
     public function setUp()
@@ -91,6 +95,7 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
         $this->testObject->setStaticCaller($this->dependencies['staticCallerMock']);
         $this->testObject->setConfig([], [], []);
         $this->setPrivatePropertyValue('exceptionHash', null);
+        $this->at = 0;
     }
 
     public function testInitStateWithParams()
@@ -121,15 +126,9 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
             'size' => $expectedSize,
         ];
 
-        $this->dependencies['staticCallerMock']->expects($this->at(0))
-            ->method('call')
-            ->with(Screenshot::class, 'setOptions', [$expectedScreenshotOptions, $expectedSiteFilters]);
-        $this->dependencies['staticCallerMock']->expects($this->at(1))
-            ->method('call')
-            ->with(JSDebug::class, 'setOptions', [$expectedTrackJs]);
-        $this->dependencies['staticCallerMock']->expects($this->at(2))
-            ->method('call')
-            ->with(Output::class, 'setOptions', [$expectedOutputOptions]);
+        $this->mockStaticCaller(Screenshot::class, 'setOptions', [$expectedScreenshotOptions, $expectedSiteFilters], null)
+            ->mockStaticCaller(JSDebug::class, 'setOptions', [$expectedTrackJs], null)
+            ->mockStaticCaller(Output::class, 'setOptions', [$expectedOutputOptions], null);
 
         $this->testObject->setConfig(
             $expectedScreenshotOptions,
@@ -189,23 +188,18 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
         self::assertEquals($result, $params);
     }
 
-    public function testTakeScreenshotAfterFailedStepPassed()
+    public function testgatherStateFactsAfterFailedStepPassed()
     {
         $scope = $this->getAfterStepScopeWithMockedParams();
+        $scope->getTestResult()->expects($this->once())->method('getResultCode')->willReturn(TestResult::PASSED);
+        $scope->getTestResult()->expects($this->never())->method('getException');
 
-        $scope->getTestResult()->expects($this->once())
-            ->method('getResultCode')
-            ->willReturn(TestResult::PASSED);
-
-        $scope->getTestResult()->expects($this->never())
-            ->method('getException');
-
-        $result = $this->testObject->takeScreenShotAfterFailedStep($scope);
+        $result = $this->testObject->gatherStateFactsAfterFailedStep($scope);
 
         self::assertNull($result);
     }
 
-    public function testTakeScreenshotAfterFailedStepPageEmpty()
+    public function testgatherStateFactsAfterFailedStepPageEmpty()
     {
         $featureFile = 'my/example/scenarios.feature';
         $exceptionMessage = 'something went wrong';
@@ -213,69 +207,41 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
         $statusCode = 200;
 
         $exceptionMock = $this->getMockBuilder(Exception::class)->getMock();
-        $exceptionMock->expects($this->any())
-            ->method('getMessage')
-            ->willReturn($exceptionMessage);
+        $exceptionMock->expects($this->never())->method('getMessage')->willReturn($exceptionMessage);
+
         $scope = $this->getAfterStepScopeWithMockedParams();
-        $scope->getTestResult()->expects($this->once())
-            ->method('getResultCode')
-            ->willReturn(TestResult::FAILED);
-        $scope->getTestResult()->expects($this->atLeastOnce())
-            ->method('getException')
-            ->willReturn($exceptionMock);
-        $scope->getFeature()->expects($this->atLeastOnce())
-            ->method('getFile')
-            ->willReturn($featureFile);
+        $scope->getTestResult()->expects($this->once())->method('getResultCode')->willReturn(TestResult::FAILED);
+        $scope->getTestResult()->expects($this->atLeastOnce())->method('getException')->willReturn($exceptionMock);
+        $scope->getFeature()->expects($this->atLeastOnce())->method('getFile')->willReturn($featureFile);
 
         $minkMock = function () use ($currentUrl, $statusCode) {
-            $pageMock = $this->getMockBuilder(DocumentElement::class)
-                ->disableOriginalConstructor()
-                ->getMock();
-            $pageMock->expects($this->atLeastOnce())
-                ->method('getOuterHtml')
+            $pageMock = $this->getMockBuilder(DocumentElement::class)->disableOriginalConstructor()->getMock();
+            $pageMock->expects($this->once())->method('getOuterHtml')
                 ->will($this->throwException(new \WebDriver\Exception\NoSuchElement('No html found.')));
-            $driverMock = $this->getMockBuilder(DriverInterface::class)
-                ->disableOriginalConstructor()
-                ->getMock();
 
-            $sessionMock = $this->getMockBuilder(Session::class)
-                ->disableOriginalConstructor()
-                ->getMock();
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getPage')
-                ->willReturn($pageMock);
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getDriver')
-                ->willReturn($driverMock);
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getCurrentUrl')
-                ->willReturn($currentUrl);
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getStatusCode')
-                ->willReturn($statusCode);
+            $driverMock = $this->getMockBuilder(DriverInterface::class)->disableOriginalConstructor()->getMock();
+
+            $sessionMock = $this->getMockBuilder(Session::class)->disableOriginalConstructor()->getMock();
+            $sessionMock->expects($this->atLeastOnce())->method('getPage')->willReturn($pageMock);
+            $sessionMock->expects($this->atLeastOnce())->method('getDriver')->willReturn($driverMock);
+            $sessionMock->expects($this->never())->method('getCurrentUrl');
+            $sessionMock->expects($this->never())->method('getStatusCode');
 
             $minkMock = $this->getMockBuilder(Mink::class)->getMock();
-            $minkMock->expects($this->atLeastOnce())
-                ->method('getSession')
-                ->willReturn($sessionMock);
+            $minkMock->expects($this->atLeastOnce())->method('getSession')->willReturn($sessionMock);
 
             return $minkMock;
         };
 
-        $this->dependencies['staticCallerMock']->expects($this->at(0))
-            ->method('call')
-            ->with(Output::class, 'getOption', ['screenshot'])
-            ->willReturn(true);
-
+        $this->mockStaticCaller(Output::class, 'getOption', ['screenshot'], true);
         $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
         $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
-        $currentScenarioMock->expects($this->any())
-            ->method('getScenario')
-            ->willReturn($scenarioMock);
+        $currentScenarioMock->expects($this->never())->method('getScenario')->willReturn($scenarioMock);
         $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
+
         $result = $this->testObject
             ->setMink($minkMock())
-            ->takeScreenShotAfterFailedStep($scope);
+            ->gatherStateFactsAfterFailedStep($scope);
 
         self::assertContains('The page is blank, is the driver/browser ready to receive the request?', $result);
     }
@@ -288,65 +254,43 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
         $statusCode = 200;
 
         $exceptionMock = $this->getMockBuilder(Exception::class)->getMock();
-        $exceptionMock->expects($this->any())
-            ->method('getMessage')
-            ->willReturn($exceptionMessage);
+        $exceptionMock->expects($this->never())->method('getMessage')->willReturn($exceptionMessage);
+
         $scope = $this->getAfterStepScopeWithMockedParams();
-        $scope->getTestResult()->expects($this->once())
-            ->method('getResultCode')
-            ->willReturn(TestResult::FAILED);
-        $scope->getTestResult()->expects($this->atLeastOnce())
-            ->method('getException')
-            ->willReturn($exceptionMock);
-        $scope->getFeature()->expects($this->atLeastOnce())
-            ->method('getFile')
-            ->willReturn($featureFile);
+        $scope->getTestResult()->expects($this->once())->method('getResultCode')->willReturn(TestResult::FAILED);
+        $scope->getTestResult()->expects($this->atLeastOnce())->method('getException')->willReturn($exceptionMock);
+        $scope->getFeature()->expects($this->atLeastOnce())->method('getFile')->willReturn($featureFile);
 
         $minkMock = function () use ($currentUrl, $statusCode) {
             $driverMock = $this->getMockBuilder(DriverInterface::class)
                 ->disableOriginalConstructor()
                 ->getMock();
 
-            $sessionMock = $this->getMockBuilder(Session::class)
-                ->disableOriginalConstructor()
-                ->getMock();
-            $sessionMock->expects($this->never())
-                ->method('getPage');
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getDriver')
-                ->willReturn($driverMock);
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getCurrentUrl')
-                ->willReturn($currentUrl);
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getStatusCode')
-                ->willReturn($statusCode);
+            $sessionMock = $this->getMockBuilder(Session::class)->disableOriginalConstructor()->getMock();
+            $sessionMock->expects($this->never())->method('getPage');
+            $sessionMock->expects($this->atLeastOnce())->method('getDriver')->willReturn($driverMock);
+            $sessionMock->expects($this->never())->method('getCurrentUrl');
+            $sessionMock->expects($this->never())->method('getStatusCode');
 
             $minkMock = $this->getMockBuilder(Mink::class)->getMock();
-            $minkMock->expects($this->atLeastOnce())
-                ->method('getSession')
-                ->willReturn($sessionMock);
+            $minkMock->expects($this->atLeastOnce())->method('getSession')->willReturn($sessionMock);
 
             return $minkMock;
         };
 
-        $this->dependencies['staticCallerMock']->expects($this->at(0))
-            ->method('call')
-            ->with(Output::class, 'getOption', ['screenshot'])
-            ->willReturn(false);
-
         $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
         $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
-        $currentScenarioMock->expects($this->any())
-            ->method('getScenario')
-            ->willReturn($scenarioMock);
+        $currentScenarioMock->expects($this->never())->method('getScenario')->willReturn($scenarioMock);
+
         $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
+        $this->mockStaticCaller(Output::class, 'getOption', ['screenshot'], false);
+
         $this->testObject
             ->setMink($minkMock())
-            ->takeScreenShotAfterFailedStep($scope);
+            ->gatherStateFactsAfterFailedStep($scope);
     }
 
-    public function testTakeScreenshotAfterFailedStepFailedBasic()
+    public function testgatherStateFactsAfterFailedStepFailedBasic()
     {
         $featureFile = 'my/example/scenarios.feature';
         $exceptionMessage = 'something went wrong';
@@ -358,112 +302,55 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
         $expectedScreenshotPath = '/abc/failures/82738492783432.png';
 
         $exceptionMock = $this->getMockBuilder(Exception::class)->getMock();
-        $exceptionMock->expects($this->any())
-            ->method('getMessage')
-            ->willReturn($exceptionMessage);
+        $exceptionMock->expects($this->never())->method('getMessage');
+
         // Exception object has final method which are not mockable by phpunit.
         $this->setObjectPrivatePropertyValue($exceptionMock, 'file', $exceptionFile);
         $scope = $this->getAfterStepScopeWithMockedParams();
-        $scope->getTestResult()->expects($this->once())
-            ->method('getResultCode')
-            ->willReturn(TestResult::FAILED);
-        $scope->getTestResult()->expects($this->atLeastOnce())
-            ->method('getException')
-            ->willReturn($exceptionMock);
-        $scope->getFeature()->expects($this->atLeastOnce())
-            ->method('getFile')
-            ->willReturn($featureFile);
+        $scope->getTestResult()->expects($this->once())->method('getResultCode')->willReturn(TestResult::FAILED);
+        $scope->getTestResult()->expects($this->atLeastOnce())->method('getException')->willReturn($exceptionMock);
+        $scope->getFeature()->expects($this->atLeastOnce())->method('getFile')->willReturn($featureFile);
 
         $minkMock = function () use ($currentUrl, $statusCode, $html) {
-            $pageMock = $this->getMockBuilder(DocumentElement::class)
-                ->disableOriginalConstructor()
-                ->getMock();
-            $pageMock->expects($this->atLeastOnce())
-                ->method('getOuterHtml')
-                ->willReturn($html);
-            $driverMock = $this->getMockBuilder(DriverInterface::class)
-                ->disableOriginalConstructor()
-                ->getMock();
+            $pageMock = $this->getMockBuilder(DocumentElement::class)->disableOriginalConstructor()->getMock();
+            $pageMock->expects($this->atLeastOnce())->method('getOuterHtml')->willReturn($html);
 
-            $sessionMock = $this->getMockBuilder(Session::class)
-                ->disableOriginalConstructor()
-                ->getMock();
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getPage')
-                ->willReturn($pageMock);
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getDriver')
-                ->willReturn($driverMock);
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getCurrentUrl')
-                ->willReturn($currentUrl);
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getStatusCode')
-                ->willReturn($statusCode);
-            $sessionMock->expects($this->any())
-                ->method('evaluateScript')
-                ->will($this->throwException(new DriverException('Unsupported action')));
+            $driverMock = $this->getMockBuilder(DriverInterface::class)->disableOriginalConstructor()->getMock();
+
+            $sessionMock = $this->getMockBuilder(Session::class)->disableOriginalConstructor()->getMock();
+            $sessionMock->expects($this->atLeastOnce())->method('getPage')->willReturn($pageMock);
+            $sessionMock->expects($this->atLeastOnce())->method('getDriver')->willReturn($driverMock);
+            $sessionMock->expects($this->atLeastOnce())->method('getCurrentUrl')->willReturn($currentUrl);
+            $sessionMock->expects($this->atLeastOnce())->method('getStatusCode')->willReturn($statusCode);
+            $sessionMock->expects($this->never())->method('evaluateScript');
 
             $minkMock = $this->getMockBuilder(Mink::class)->getMock();
-            $minkMock->expects($this->atLeastOnce())
-                ->method('getSession')
-                ->willReturn($sessionMock);
+            $minkMock->expects($this->atLeastOnce())->method('getSession')->willReturn($sessionMock);
 
             return $minkMock;
         };
         $minkMock = $minkMock();
 
         $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
-        $scenarioMock->expects($this->any())
-            ->method('getLine')
-            ->willReturn($expectedLineNumber);
+        $scenarioMock->expects($this->never())->method('getLine');
         $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
-        $currentScenarioMock->expects($this->any())
-            ->method('getScenario')
-            ->willReturn($scenarioMock);
+        $currentScenarioMock->expects($this->never())->method('getScenario');
 
         $sessionMock = $minkMock->getSession();
         $pageMock = $sessionMock->getPage();
         $driverMock = $sessionMock->getDriver();
 
-        $this->dependencies['staticCallerMock']->expects($this->at(0))
-            ->method('call')
-            ->with(Output::class, 'getOption', ['screenshot'])
-            ->willReturn(true);
-
-        $this->dependencies['staticCallerMock']->expects($this->at(1))
-            ->method('call')
-            ->with(Output::class, 'getOption', ['screenshot'])
-            ->willReturn(true);
-
-        $this->dependencies['staticCallerMock']->expects($this->at(2))
-            ->method('call')
-            ->with(Screenshot::class, 'canTakeScreenshot', [$sessionMock])
-            ->willReturn(true);
-
-        $this->dependencies['staticCallerMock']->expects($this->at(3))
-            ->method('call')
-            ->with(Screenshot::class, 'takeScreenshot', [$pageMock, $driverMock])
-            ->willReturn($expectedScreenshotPath);
-
-        $this->dependencies['staticCallerMock']->expects($this->at(4))
-            ->method('call')
-            ->with(JSDebug::class, 'getJsErrors', [$sessionMock])
-            ->willReturn(['Undefined var: name']);
-
-        $this->dependencies['staticCallerMock']->expects($this->at(5))
-            ->method('call')
-            ->with(JSDebug::class, 'getJsWarns', [$sessionMock])
-            ->willReturn([]);
-
-        $this->dependencies['staticCallerMock']->expects($this->at(6))
-            ->method('call')
-            ->with(JSDebug::class, 'getJsLogs', [$sessionMock])
-            ->willReturn([]);
-
-        $this->dependencies['staticCallerMock']->expects($this->at(7))
-            ->method('call')
-            ->with(Output::class, 'getExceptionDetails', [
+        $this->mockStaticCaller(Output::class, 'getOption', ['screenshot'], true)
+            ->mockStaticCaller(Output::class, 'getOption', ['url'], true)
+            ->mockStaticCaller(Output::class, 'getOption', ['status'], true)
+            ->mockStaticCaller(Output::class, 'getOption', ['screenshot'], true)
+            ->mockStaticCaller(Screenshot::class, 'canTakeScreenshot', [$sessionMock], true)
+            ->mockStaticCaller(Screenshot::class, 'takeScreenshot', [$pageMock, $driverMock], $expectedScreenshotPath)
+            ->mockStaticCaller(Output::class, 'getOption', ['debugBarSelectors'], true)
+            ->mockStaticCaller(JSDebug::class, 'getJsErrors', [$sessionMock], ['Undefined var: name'])
+            ->mockStaticCaller(JSDebug::class, 'getJsWarns', [$sessionMock], [])
+            ->mockStaticCaller(JSDebug::class, 'getJsLogs', [$sessionMock], [])
+            ->mockStaticCaller(Output::class, 'getExceptionDetails', [
                 $currentUrl,
                 $statusCode,
                 $featureFile,
@@ -475,13 +362,13 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
                 $jsWarns = [],
                 get_class($driverMock),
                 $currentScenarioMock
-            ])
-            ->willReturn('[URL] http://site.dev/login');
+            ], '[URL] http://site.dev/login');
 
         $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
+
         $result = $this->testObject
             ->setMink($minkMock)
-            ->takeScreenShotAfterFailedStep($scope);
+            ->gatherStateFactsAfterFailedStep($scope);
 
         self::assertInternalType('string', $result);
         self::assertContains('[URL] http://site.dev/login', $result);
@@ -493,59 +380,41 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
     {
         $featureFile = 'my/example/scenarios.feature';
         $exceptionMessage = 'something went wrong';
+        $exceptionFile = '/abc/23243234234/Service.php';
         $currentUrl = 'http://site.dev/login';
         $statusCode = 200;
         $html = '<html><body>Hello World</body></html>';
         $expectedLineNumber = 79;
 
+        $exceptionMock = $this->getMockBuilder(Exception::class)->getMock();
+        $exceptionMock->expects($this->never())->method('getMessage');
+
+        // Exception object has final method which are not mockable by phpunit.
+        $this->setObjectPrivatePropertyValue($exceptionMock, 'file', $exceptionFile);
         $scope = $this->getAfterStepScopeWithMockedParams();
-        $scope->getTestResult()->expects($this->once())
-            ->method('getResultCode')
-            ->willReturn(TestResult::FAILED);
-        $scope->getTestResult()->expects($this->atLeastOnce())
-            ->method('getException')
+        $scope->getTestResult()->expects($this->once())->method('getResultCode')->willReturn(TestResult::FAILED);
+        $scope->getTestResult()->expects($this->atLeastOnce())->method('getException')->willReturn($exceptionMock);
+        $scope->getTestResult()->expects($this->atLeastOnce())->method('getException')
             ->willReturn(new Exception($exceptionMessage));
-        $scope->getFeature()->expects($this->atLeastOnce())
-            ->method('getFile')
-            ->willReturn($featureFile);
+        $scope->getFeature()->expects($this->atLeastOnce())->method('getFile')->willReturn($featureFile);
 
         $minkMock = function () use ($currentUrl, $statusCode, $html) {
-            $elementMock = $this->getMockBuilder(ElementInterface::class)
-                ->getMock();
-            $elementMock->expects($this->once())
-                ->method('getText')
+            $elementMock = $this->getMockBuilder(ElementInterface::class)->getMock();
+            $elementMock->expects($this->once())->method('getText')
                 ->willReturn('A registered service was not found.');
 
-            $pageMock = $this->getMockBuilder(DocumentElement::class)
-                ->disableOriginalConstructor()
-                ->getMock();
-            $pageMock->expects($this->never())
-                ->method('getOuterHtml')
-                ->willReturn($html);
-            $pageMock->expects($this->at(0))
-                ->method('find')
-                ->with('css', '#debugBar .message')
+            $pageMock = $this->getMockBuilder(DocumentElement::class)->disableOriginalConstructor()->getMock();
+            $pageMock->expects($this->never())->method('getOuterHtml')->willReturn($html);
+            $pageMock->expects($this->at(0))->method('find')->with('css', '#debugBar .message')
                 ->willReturn($elementMock);
-            $driverMock = $this->getMockBuilder(DriverInterface::class)
-                ->disableOriginalConstructor()
-                ->getMock();
 
-            $sessionMock = $this->getMockBuilder(Session::class)
-                ->disableOriginalConstructor()
-                ->getMock();
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getPage')
-                ->willReturn($pageMock);
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getDriver')
-                ->willReturn($driverMock);
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getCurrentUrl')
-                ->willReturn($currentUrl);
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getStatusCode')
-                ->willReturn($statusCode);
+            $driverMock = $this->getMockBuilder(DriverInterface::class)->disableOriginalConstructor()->getMock();
 
+            $sessionMock = $this->getMockBuilder(Session::class)->disableOriginalConstructor()->getMock();
+            $sessionMock->expects($this->atLeastOnce())->method('getPage')->willReturn($pageMock);
+            $sessionMock->expects($this->atLeastOnce())->method('getDriver')->willReturn($driverMock);
+            $sessionMock->expects($this->never())->method('getCurrentUrl');
+            $sessionMock->expects($this->never())->method('getStatusCode');
             $sessionMock->expects($this->any())
                 ->method('evaluateScript')
                 ->withConsecutive(['return window.jsErrors'], ['return window.jsWarns'], ['return window.jsLogs'])
@@ -556,12 +425,11 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
                 );
 
             $minkMock = $this->getMockBuilder(Mink::class)->getMock();
-            $minkMock->expects($this->atLeastOnce())
-                ->method('getSession')
-                ->willReturn($sessionMock);
+            $minkMock->expects($this->atLeastOnce())->method('getSession')->willReturn($sessionMock);
 
             return $minkMock;
         };
+        $minkMock = $minkMock();
 
         $this->setPrivatePropertyValue('debugBarSelectors', [
             'message' => '#debugBar .message',
@@ -569,25 +437,37 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
         ]);
 
         $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
-        $scenarioMock->expects($this->any())
-            ->method('getLine')
-            ->willReturn($expectedLineNumber);
+        $scenarioMock->expects($this->never())->method('getLine');
         $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
-        $currentScenarioMock->expects($this->any())
-            ->method('getScenario')
-            ->willReturn($scenarioMock);
+        $currentScenarioMock->expects($this->never())->method('getScenario');
+
+        $sessionMock = $minkMock->getSession();
+        $pageMock = $sessionMock->getPage();
+        $driverMock = $sessionMock->getDriver();
+
         $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
-        $this->dependencies['staticCallerMock']->expects($this->at(5))
-            ->method('call')
-            ->with(Output::class, 'getExceptionDetails', $this->isType('array'))
-            ->willReturn('[URL] http://site.dev/login');
+        $this->mockStaticCallerAt(4, Output::class, 'getOption', ['debugBarSelectors'], true)
+            ->mockStaticCallerAt(8, Output::class, 'getExceptionDetails', [
+                null,
+                null,
+                $featureFile,
+                $exceptionFile,
+                null,
+                '  [MESSAGE] A registered service was not found.
+  [QUERIES] Element "#debugBar .queries" Not Found.
+',
+                null,
+                null,
+                null,
+                get_class($driverMock),
+                $currentScenarioMock
+            ], '[URL] http://site.dev/login');
 
         $result = $this->testObject
-            ->setMink($minkMock())
-            ->takeScreenShotAfterFailedStep($scope);
+            ->setMink($minkMock)
+            ->gatherStateFactsAfterFailedStep($scope);
 
         self::assertEquals('[URL] http://site.dev/login' . PHP_EOL, $result);
-
         $this->setPrivatePropertyValue('debugBarSelectors', []);
     }
 
@@ -595,70 +475,68 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
     {
         $featureFile = 'my/example/scenarios.feature';
         $exceptionMessage = 'something went wrong';
+        $exceptionFile = '/abc/23243234234/Service.php';
         $currentUrl = 'http://site.dev/login';
         $statusCode = 200;
         $html = '<html><body>Hello World</body></html>';
         $expectedLineNumber = 99;
 
+        $exceptionMock = $this->getMockBuilder(Exception::class)->getMock();
+        $exceptionMock->expects($this->never())->method('getMessage');
+
+        $this->setObjectPrivatePropertyValue($exceptionMock, 'file', $exceptionFile);
         $scope = $this->getAfterStepScopeWithMockedParams();
-        $scope->getTestResult()->expects($this->once())
-            ->method('getResultCode')
-            ->willReturn(TestResult::FAILED);
-        $scope->getTestResult()->expects($this->atLeastOnce())
-            ->method('getException')
+        $scope->getTestResult()->expects($this->once())->method('getResultCode')->willReturn(TestResult::FAILED);
+        $scope->getTestResult()->expects($this->atLeastOnce())->method('getException')->willReturn($exceptionMock);
+        $scope->getTestResult()->expects($this->atLeastOnce())->method('getException')
             ->willReturn(new Exception($exceptionMessage));
-        $scope->getFeature()->expects($this->atLeastOnce())
-            ->method('getFile')
-            ->willReturn($featureFile);
+        $scope->getFeature()->expects($this->atLeastOnce())->method('getFile')->willReturn($featureFile);
 
         $minkMock = function () use ($currentUrl, $statusCode, $html) {
-            $driverMock = $this->getMockBuilder(DriverInterface::class)
-                ->disableOriginalConstructor()
-                ->getMock();
+            $driverMock = $this->getMockBuilder(DriverInterface::class)->disableOriginalConstructor()->getMock();
 
-            $sessionMock = $this->getMockBuilder(Session::class)
-                ->disableOriginalConstructor()
-                ->getMock();
-            $sessionMock->expects($this->never())
-                ->method('getPage');
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getDriver')
-                ->willReturn($driverMock);
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getCurrentUrl')
-                ->willReturn($currentUrl);
-            $sessionMock->expects($this->atLeastOnce())
-                ->method('getStatusCode')
-                ->willReturn($statusCode);
+            $sessionMock = $this->getMockBuilder(Session::class)->disableOriginalConstructor()->getMock();
+            $sessionMock->expects($this->never())->method('getPage');
+            $sessionMock->expects($this->atLeastOnce())->method('getDriver')->willReturn($driverMock);
+            $sessionMock->expects($this->never())->method('getCurrentUrl')->willReturn($currentUrl);
+            $sessionMock->expects($this->never())->method('getStatusCode')->willReturn($statusCode);
 
             $minkMock = $this->getMockBuilder(Mink::class)->getMock();
-            $minkMock->expects($this->atLeastOnce())
-                ->method('getSession')
-                ->willReturn($sessionMock);
+            $minkMock->expects($this->atLeastOnce())->method('getSession')->willReturn($sessionMock);
 
             return $minkMock;
         };
+        $minkMock = $minkMock();
 
         FailureContext::addState('test user email', 'its.inevitable@hotmail.com');
         FailureContext::addState('postcode', 'LD34 8GG');
 
         $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
-        $scenarioMock->expects($this->any())
-            ->method('getLine')
-            ->willReturn($expectedLineNumber);
+        $scenarioMock->expects($this->never())->method('getLine')->willReturn($expectedLineNumber);
         $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
-        $currentScenarioMock->expects($this->any())
-            ->method('getScenario')
-            ->willReturn($scenarioMock);
-        $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
+        $currentScenarioMock->expects($this->never())->method('getScenario')->willReturn($scenarioMock);
 
-        $this->dependencies['staticCallerMock']->expects($this->at(5))
-            ->method('call')
-            ->willReturn('[URL] http://site.dev/login');
+        $sessionMock = $minkMock->getSession();
+        $driverMock = $sessionMock->getDriver();
+
+        $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
+        $this->mockStaticCallerAt(8, Output::class, 'getExceptionDetails', [
+            null,
+            null,
+            $featureFile,
+            $exceptionFile,
+            null,
+            '',
+            null,
+            null,
+            null,
+            get_class($driverMock),
+            $currentScenarioMock
+        ], '[URL] http://site.dev/login');
 
         $result = $this->testObject
-            ->setMink($minkMock())
-            ->takeScreenShotAfterFailedStep($scope);
+            ->setMink($minkMock)
+            ->gatherStateFactsAfterFailedStep($scope);
 
         self::assertContains('[URL] http://site.dev/login', $result);
         self::assertContains('[STATE]', $result);
@@ -848,6 +726,24 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
         $reflectionProperty = new ReflectionProperty(get_class($object), $property);
         $reflectionProperty->setAccessible(true);
         $reflectionProperty->setValue($object, $value);
+
+        return $this;
+    }
+
+    private function mockStaticCaller($service, $method, $params, $return)
+    {
+        $this->mockStaticCallerAt($this->at, $service, $method, $params, $return);
+        $this->at += 1;
+
+        return $this;
+    }
+
+    private function mockStaticCallerAt($at, $service, $method, $params, $return)
+    {
+        $this->dependencies['staticCallerMock']->expects($this->at($at))
+            ->method('call')
+            ->with($service, $method, $params)
+            ->willReturn($return);
 
         return $this;
     }
