@@ -260,7 +260,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
     /**
      * @AfterStep
      */
-    public function takeScreenShotAfterFailedStep(AfterStepScope $scope)
+    public function gatherStateFactsAfterFailedStep(AfterStepScope $scope)
     {
         if ($scope->getTestResult()->getResultCode() === TestResult::FAILED) {
             try {
@@ -444,17 +444,21 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
         $driver = $session->getDriver();
 
         $currentUrl = null;
-        try {
-            $currentUrl = $session->getCurrentUrl();
-        } catch (Exception $e) {
-            $currentUrl = 'Unable to fetch current url, error: ' . $e->getMessage();
+        if ($this->staticCaller->call(Output::class, 'getOption', ['url'])) {
+            try {
+                $currentUrl = $session->getCurrentUrl();
+            } catch (Exception $e) {
+                $currentUrl = 'Unable to fetch current url, error: ' . $e->getMessage();
+            }
         }
 
         $statusCode = null;
-        try {
-            $statusCode = $session->getStatusCode();
-        } catch (DriverException $e) {
-            $statusCode = 'Unable to fetch status code, error: ' . $e->getMessage();
+        if ($this->staticCaller->call(Output::class, 'getOption', ['status'])) {
+            try {
+                $statusCode = $session->getStatusCode();
+            } catch (DriverException $e) {
+                $statusCode = 'Unable to fetch status code, error: ' . $e->getMessage();
+            }
         }
 
         $screenshotPath = null;
@@ -472,14 +476,16 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
         }
 
         $debugBarDetails = '';
-        if ($debugBarSelectors) {
-            try {
-                $debugBarDetails = $this->gatherDebugBarDetails(
-                    $debugBarSelectors,
-                    $session->getPage()
-                );
-            } catch (Exeption $e) {
-                $debugBarDetails = 'Unable to capture debug bar details: ' . $e->getMessage();
+        if ($this->staticCaller->call(Output::class, 'getOption', ['debugBarSelectors'])) {
+            if ($debugBarSelectors) {
+                try {
+                    $debugBarDetails = $this->gatherDebugBarDetails(
+                        $debugBarSelectors,
+                        $session->getPage()
+                    );
+                } catch (Exeption $e) {
+                    $debugBarDetails = 'Unable to capture debug bar details: ' . $e->getMessage();
+                }
             }
         }
 

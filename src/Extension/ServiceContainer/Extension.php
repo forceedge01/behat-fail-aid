@@ -85,6 +85,7 @@ class Extension implements ExtensionInterface
                         ->booleanNode('context')->defaultValue(true)->end()
                         ->booleanNode('screenshot')->defaultValue(true)->end()
                         ->booleanNode('driver')->defaultValue(true)->end()
+                        ->booleanNode('debugBarSelectors')->defaultValue(true)->end()
                         ->booleanNode('rerun')->defaultValue(true)->end()
                         ->booleanNode('tags')->defaultValue(true)->end()
                     ->end()

@@ -53,16 +53,11 @@ Info: clearly not equal.';
         ];
 
         $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
-        $scenarioMock->expects($this->any())
-            ->method('getLine')
-            ->willReturn($expectedLineNumber);
-        $scenarioMock->expects($this->any())
-            ->method('getTags')
-            ->willReturn(['first', 'second']);
+        $scenarioMock->expects($this->atLeastOnce())->method('getLine')->willReturn($expectedLineNumber);
+        $scenarioMock->expects($this->atLeastOnce())->method('getTags')->willReturn(['first', 'second']);
+
         $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
-        $currentScenarioMock->expects($this->any())
-            ->method('getScenario')
-            ->willReturn($scenarioMock);
+        $currentScenarioMock->expects($this->atLeastOnce())->method('getScenario')->willReturn($scenarioMock);
 
         Output::setOptions([
             'url' => true,
@@ -138,16 +133,11 @@ Info: clearly not equal.';
         ];
 
         $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
-        $scenarioMock->expects($this->any())
-            ->method('getLine')
-            ->willReturn($expectedLineNumber);
-        $scenarioMock->expects($this->any())
-            ->method('getTags')
-            ->willReturn([]);
+        $scenarioMock->expects($this->never())->method('getLine')->willReturn($expectedLineNumber);
+        $scenarioMock->expects($this->atLeastOnce())->method('getTags')->willReturn([]);
+
         $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
-        $currentScenarioMock->expects($this->any())
-            ->method('getScenario')
-            ->willReturn($scenarioMock);
+        $currentScenarioMock->expects($this->atLeastOnce())->method('getScenario')->willReturn($scenarioMock);
 
         Output::setOptions([
             'url' => true,
