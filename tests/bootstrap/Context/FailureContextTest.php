@@ -376,24 +376,6 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
         self::assertNotContains('[STATE]', $result);
     }
 
-    private function mockStaticCaller($service, $method, $params, $return)
-    {
-        $this->mockStaticCallerAt($this->at, $service, $method, $params, $return);
-        $this->at += 1;
-
-        return $this;
-    }
-
-    private function mockStaticCallerAt($at, $service, $method, $params, $return)
-    {
-        $this->dependencies['staticCallerMock']->expects($this->at($at))
-            ->method('call')
-            ->with($service, $method, $params)
-            ->willReturn($return);
-
-        return $this;
-    }
-
     public function testAfterFailedStepFailedDebugBarDetails()
     {
         $featureFile = 'my/example/scenarios.feature';
@@ -731,6 +713,24 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
         $reflectionProperty = new ReflectionProperty(get_class($object), $property);
         $reflectionProperty->setAccessible(true);
         $reflectionProperty->setValue($object, $value);
+
+        return $this;
+    }
+
+    private function mockStaticCaller($service, $method, $params, $return)
+    {
+        $this->mockStaticCallerAt($this->at, $service, $method, $params, $return);
+        $this->at += 1;
+
+        return $this;
+    }
+
+    private function mockStaticCallerAt($at, $service, $method, $params, $return)
+    {
+        $this->dependencies['staticCallerMock']->expects($this->at($at))
+            ->method('call')
+            ->with($service, $method, $params)
+            ->willReturn($return);
 
         return $this;
     }
