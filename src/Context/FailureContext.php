@@ -30,6 +30,11 @@ use Symfony\Component\Console\Input\ArgvInput;
 class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarInterface
 {
     /**
+     * @var string
+     */
+    public $defaultSession;
+
+    /**
      * @var Mink
      */
     private $mink;
@@ -48,11 +53,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
      * @var array
      */
     private $debugBarSelectors = [];
-
-    /**
-     * @var string
-     */
-    private $defaultSession;
 
     /**
      * @var string
@@ -95,6 +95,11 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
     private static $feedbackOnFailure = false;
 
     /**
+     * @var FeatureContext
+     */
+    private static $self;
+
+    /**
      * @var array
      */
     private $outputOptions = [];
@@ -102,7 +107,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
     /**
      * @var StaticCallerService
      */
-    private $staticCaller;
+    public $staticCaller;
 
     /**
      * Initializes context.
@@ -118,6 +123,12 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
         date_default_timezone_set('Europe/London');
 
         $this->outputOptions = $output;
+        self::$self = $this;
+    }
+
+    public static function getInstance()
+    {
+        return self::$self;
     }
 
     public function setStaticCaller(StaticCallerService $staticCaller)
