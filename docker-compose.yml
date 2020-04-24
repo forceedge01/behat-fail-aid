@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  tests-php-5.6:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    volumes:
+        - .:/app
+  tests-php-7.1:
+    build:
+      dockerfile: Dockerfile-php-7
+      context: .
+    volumes:
+        - .:/app
