@@ -1,4 +1,4 @@
-Behat Fail Aid [ ![Codeship Status for forceedge01/behat-fail-aid](https://app.codeship.com/projects/0a2814f0-984a-0136-1935-7202d5d80573/status?branch=master)](https://app.codeship.com/projects/305220)
+Behat Fail Aid [![Build Status](https://travis-ci.com/forceedge01/behat-fail-aid.svg?branch=master)](https://travis-ci.com/forceedge01/behat-fail-aid)
 ==============
 
 Introduction
