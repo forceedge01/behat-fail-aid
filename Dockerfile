@@ -13,4 +13,4 @@ COPY composer.lock .
 RUN composer install --prefer-source
 COPY . .
 
-CMD ["composer", "run-script", "tests"]
+CMD ["./vendor/bin/phpunit", "-c", "tests"]

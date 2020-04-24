@@ -30,6 +30,6 @@
     "genesis/db-backup-restore": "Quickly backup and restore your database."
   },
   "scripts": {
-    "tests": "vendor/bin/phpunit -c tests"
+    "tests": "./vendor/bin/phpunit -c tests"
   }
 }
