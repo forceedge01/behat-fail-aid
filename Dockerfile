@@ -5,12 +5,13 @@ RUN php -r "if (hash_file('sha384', 'composer-setup.php') === 'e0012edf3e80b6978
 RUN php composer-setup.php
 RUN php -r "unlink('composer-setup.php');"
 RUN mv composer.phar /usr/bin/composer
-RUN apt-get update && apt-get install -y git
+RUN apt-get update && apt-get install -y zip unzip
+RUN composer global require hirak/prestissimo
 
 WORKDIR '/app'
 COPY composer.json .
 COPY composer.lock .
-RUN composer install --prefer-source
+RUN composer install
 COPY . .
 
 CMD ["composer", "run-script", "tests"]
