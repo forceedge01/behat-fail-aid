@@ -9,12 +9,10 @@
     }
   ],
   "require": {
-    "behat/mink": "*@stable",
-    "behat/mink-extension": "~2.0@stable",
-    "behat/mink-selenium2-driver": "^1.3"
+    "behat/mink": "*@stable"
   },
   "require-dev": {
-    "phpunit/phpunit": "4.*",
+    "phpunit/phpunit": "~4.0",
     "behat/behat": "^3.5",
     "behat/mink-goutte-driver": "^1.2",
     "ciaranmcnulty/behat-localwebserverextension": "^1.1"
@@ -28,5 +26,8 @@
     "genesis/sql-data-mods": "Extends behat-sql-extension to provide a powerful and simple framework to manage your data modules.",
     "genesis/test-routing": "Simplistic routing that can extend main app routing for testing purposes.",
     "genesis/db-backup-restore": "Quickly backup and restore your database."
+  },
+  "scripts": {
+    "tests": "vendor/bin/phpunit -c tests"
   }
 }

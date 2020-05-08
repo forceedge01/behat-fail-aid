@@ -1,9 +1,5 @@
-Behat Fail Aid [ ![Codeship Status for forceedge01/behat-fail-aid](https://app.codeship.com/projects/0a2814f0-984a-0136-1935-7202d5d80573/status?branch=master)](https://app.codeship.com/projects/305220)
-[![Latest Stable Version](https://poser.pugx.org/genesis/behat-fail-aid/v/stable)](https://packagist.org/packages/genesis/behat-fail-aid)
-[![Total Downloads](https://poser.pugx.org/genesis/behat-fail-aid/downloads)](https://packagist.org/packages/genesis/behat-fail-aid)
-[![License](https://poser.pugx.org/genesis/behat-fail-aid/license)](https://packagist.org/packages/genesis/behat-fail-aid)
-[![Monthly Downloads](https://poser.pugx.org/genesis/behat-fail-aid/d/monthly)](https://packagist.org/packages/genesis/behat-fail-aid)
-==============
+Behat Fail Aid [![Build Status](https://travis-ci.com/forceedge01/behat-fail-aid.svg?branch=master)](https://travis-ci.com/forceedge01/behat-fail-aid)[![Latest Stable Version](https://poser.pugx.org/genesis/behat-fail-aid/v/stable)](https://packagist.org/packages/genesis/behat-fail-aid)[![Total Downloads](https://poser.pugx.org/genesis/behat-fail-aid/downloads)](https://packagist.org/packages/genesis/behat-fail-aid)[![License](https://poser.pugx.org/genesis/behat-fail-aid/license)](https://packagist.org/packages/genesis/behat-fail-aid)[![Monthly Downloads](https://poser.pugx.org/genesis/behat-fail-aid/d/monthly)](https://packagist.org/packages/genesis/behat-fail-aid)
+=======
 
 Introduction
 -------------
