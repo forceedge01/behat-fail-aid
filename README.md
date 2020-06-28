@@ -37,6 +37,7 @@ Minor:
 - Execute screenshot code only if requested in output.
 - Override output parameters through individual context file params.
 - Override more output parameters.
+- Set output.api parameter to true to set all mink related flags/operations to false for quick settings.
 
 Patch: NA.
 
@@ -90,6 +91,7 @@ default:
   extensions:
     FailAid\Extension:
       output:
+        api: false # (Set this to true if testing against API's which don't use mink).
         url: false
         status: false
         tags: false

@@ -5,12 +5,12 @@ namespace FailAid\Context;
 use Behat\Behat\Context\Context;
 use Behat\Behat\Hook\Scope\AfterStepScope;
 use Behat\Behat\Hook\Scope\ScenarioScope;
-use Behat\MinkExtension\Context\MinkAwareContext;
 use Behat\Mink\Driver\DriverInterface;
 use Behat\Mink\Element\DocumentElement;
 use Behat\Mink\Exception\DriverException;
 use Behat\Mink\Mink;
 use Behat\Mink\Session;
+use Behat\MinkExtension\Context\MinkAwareContext;
 use Behat\Testwork\ServiceContainer\Configuration\ConfigurationLoader;
 use Behat\Testwork\Tester\Result\TestResult;
 use DirectoryIterator;
@@ -288,25 +288,27 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
                     $exception = $scope->getTestResult()->getException();
 
                     $message = '';
-                    if ($this->staticCaller->call(Output::class, 'getOption', ['screenshot'])) {
-                        try {
-                            $this->getSession()->getPage()->getOuterHtml();
-                        } catch (\WebDriver\Exception\NoSuchElement $e) {
-                            $message = PHP_EOL . PHP_EOL . 'The page is blank, is the driver/browser ready to receive the request?';
+                    if (!$this->staticCaller->call(Output::class, 'getOption', ['api'])) {
+                        if ($this->staticCaller->call(Output::class, 'getOption', ['screenshot'])) {
+                            try {
+                                $this->getSession()->getPage()->getOuterHtml();
+                            } catch (\WebDriver\Exception\NoSuchElement $e) {
+                                $message = PHP_EOL . PHP_EOL . 'The page is blank, is the driver/browser ready to receive the request?';
+                            }
                         }
+
+                        $session = $this->getSession();
+                        $driver = $session->getDriver();
+
+                        $message .= $this->gatherFacts(
+                            $session,
+                            $driver,
+                            $this->debugBarSelectors,
+                            $scope->getFeature()->getFile(),
+                            $exception->getFile(),
+                            $this->currentScenario
+                        );
                     }
-
-                    $session = $this->getSession();
-                    $driver = $session->getDriver();
-
-                    $message .= $this->gatherFacts(
-                        $session,
-                        $driver,
-                        $this->debugBarSelectors,
-                        $scope->getFeature()->getFile(),
-                        $exception->getFile(),
-                        $this->currentScenario
-                    );
 
                     $message = $this->addStateDetails($message, $this->getStateDetails(self::$states));
 

@@ -3,5 +3,4 @@ vendor: composer.json
 
 .PHONY: tests
 tests:
-	./vendor/bin/phpunit -c tests
-	./vendor/bin/behat
+	docker-compose up
