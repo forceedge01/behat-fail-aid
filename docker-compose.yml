@@ -6,10 +6,10 @@ services:
       dockerfile: Dockerfile
       context: .
     volumes:
-        - ./:/app
+      - ./:/app
   tests-php-7.1:
     build:
       dockerfile: Dockerfile-php-7
       context: .
     volumes:
-        - ./:/app
+      - ./:/app

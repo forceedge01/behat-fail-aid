@@ -3,7 +3,8 @@ vendor: composer.json
 
 .PHONY: tests
 tests:
-	docker-compose up
+	docker-compose run --rm tests-php-5.6
+	docker-compose run --rm tests-php-7.1
 
 .PHONY: run
 run:
