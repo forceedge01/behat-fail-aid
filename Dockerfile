@@ -1,9 +1,7 @@
 FROM forceedge01/php56cli-composer:latest
 
 WORKDIR '/app'
-COPY composer.json .
-COPY composer.lock .
-RUN composer install
 COPY . .
+RUN composer install
 
 CMD ["composer", "run-script", "tests"]

@@ -233,6 +233,7 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
             return $minkMock;
         };
 
+        $this->mockStaticCaller(Output::class, 'getOption', ['api'], false);
         $this->mockStaticCaller(Output::class, 'getOption', ['screenshot'], true);
         $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
         $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
@@ -283,6 +284,7 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
         $currentScenarioMock->expects($this->never())->method('getScenario')->willReturn($scenarioMock);
 
         $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
+        $this->mockStaticCaller(Output::class, 'getOption', ['api'], false);
         $this->mockStaticCaller(Output::class, 'getOption', ['screenshot'], false);
 
         $this->testObject
@@ -340,7 +342,9 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
         $pageMock = $sessionMock->getPage();
         $driverMock = $sessionMock->getDriver();
 
-        $this->mockStaticCaller(Output::class, 'getOption', ['screenshot'], true)
+        $this
+            ->mockStaticCaller(Output::class, 'getOption', ['api'], false)
+            ->mockStaticCaller(Output::class, 'getOption', ['screenshot'], true)
             ->mockStaticCaller(Output::class, 'getOption', ['url'], true)
             ->mockStaticCaller(Output::class, 'getOption', ['status'], true)
             ->mockStaticCaller(Output::class, 'getOption', ['screenshot'], true)
@@ -446,8 +450,8 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
         $driverMock = $sessionMock->getDriver();
 
         $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
-        $this->mockStaticCallerAt(4, Output::class, 'getOption', ['debugBarSelectors'], true)
-            ->mockStaticCallerAt(8, Output::class, 'getExceptionDetails', [
+        $this->mockStaticCallerAt(5, Output::class, 'getOption', ['debugBarSelectors'], true)
+            ->mockStaticCallerAt(9, Output::class, 'getExceptionDetails', [
                 null,
                 null,
                 $featureFile,
@@ -520,7 +524,7 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
         $driverMock = $sessionMock->getDriver();
 
         $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
-        $this->mockStaticCallerAt(8, Output::class, 'getExceptionDetails', [
+        $this->mockStaticCallerAt(9, Output::class, 'getExceptionDetails', [
             null,
             null,
             $featureFile,
@@ -539,6 +543,55 @@ class FailureContextTest extends PHPUnit_Framework_TestCase
             ->gatherStateFactsAfterFailedStep($scope);
 
         self::assertContains('[URL] http://site.dev/login', $result);
+        self::assertContains('[STATE]', $result);
+        self::assertContains('  [TEST USER EMAIL] its.inevitable@hotmail.com', $result);
+        self::assertContains('  [POSTCODE] LD34 8GG', $result);
+    }
+
+    public function testIfApiEnabledMinkSessionIsNotCalledUpon()
+    {
+        $featureFile = 'my/example/scenarios.feature';
+        $exceptionMessage = 'something went wrong';
+        $exceptionFile = '/abc/23243234234/Service.php';
+        $currentUrl = 'http://site.dev/login';
+        $statusCode = 200;
+        $html = '<html><body>Hello World</body></html>';
+        $expectedLineNumber = 99;
+
+        $exceptionMock = $this->getMockBuilder(Exception::class)->getMock();
+        $exceptionMock->expects($this->never())->method('getMessage');
+
+        $this->setObjectPrivatePropertyValue($exceptionMock, 'file', $exceptionFile);
+        $scope = $this->getAfterStepScopeWithMockedParams();
+        $scope->getTestResult()->expects($this->once())->method('getResultCode')->willReturn(TestResult::FAILED);
+        $scope->getTestResult()->expects($this->atLeastOnce())->method('getException')->willReturn($exceptionMock);
+        $scope->getTestResult()->expects($this->atLeastOnce())->method('getException')
+            ->willReturn(new Exception($exceptionMessage));
+        $scope->getFeature()->expects($this->atLeastOnce())->method('getFile')->willReturn($featureFile);
+
+        $minkMock = function () use ($currentUrl, $statusCode, $html) {
+            $minkMock = $this->getMockBuilder(Mink::class)->getMock();
+            $minkMock->expects($this->never())->method('getSession');
+
+            return $minkMock;
+        };
+        $minkMock = $minkMock();
+
+        FailureContext::addState('test user email', 'its.inevitable@hotmail.com');
+        FailureContext::addState('postcode', 'LD34 8GG');
+
+        $scenarioMock = $this->getMockBuilder(ScenarioInterface::class)->getMock();
+        $scenarioMock->expects($this->never())->method('getLine')->willReturn($expectedLineNumber);
+        $currentScenarioMock = $this->getMockBuilder(ScenarioScope::class)->getMock();
+        $currentScenarioMock->expects($this->never())->method('getScenario')->willReturn($scenarioMock);
+
+        $this->mockStaticCaller(Output::class, 'getOption', ['api'], true);
+        $this->setPrivatePropertyValue('currentScenario', $currentScenarioMock);
+
+        $result = $this->testObject
+            ->setMink($minkMock)
+            ->gatherStateFactsAfterFailedStep($scope);
+
         self::assertContains('[STATE]', $result);
         self::assertContains('  [TEST USER EMAIL] its.inevitable@hotmail.com', $result);
         self::assertContains('  [POSTCODE] LD34 8GG', $result);

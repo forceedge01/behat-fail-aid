@@ -79,6 +79,7 @@ class Extension implements ExtensionInterface
                 ->arrayNode('output')
                 ->addDefaultsIfNotset()
                     ->children()
+                        ->booleanNode('api')->defaultValue(false)->end()
                         ->booleanNode('url')->defaultValue(true)->end()
                         ->booleanNode('status')->defaultValue(true)->end()
                         ->booleanNode('feature')->defaultValue(true)->end()

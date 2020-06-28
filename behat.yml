@@ -9,6 +9,13 @@ default:
             screenshot: false
             status: false
             debugBarSelectors: false
+    api:
+      contexts:
+        - FeatureContext
+        - Behat\MinkExtension\Context\MinkContext
+        - FailAid\Context\FailureContext:
+          - output:
+            api: true
     generic-php55:
       contexts:
         - FeatureContext
@@ -17,6 +24,7 @@ default:
   extensions:
     FailAid\Extension:
       output:
+        api: false
         tags: false
       screenshot:
         directory: ./features/failures
