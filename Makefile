@@ -4,3 +4,7 @@ vendor: composer.json
 .PHONY: tests
 tests:
 	docker-compose up
+
+.PHONY: run
+run:
+	./vendor/bin/behat
