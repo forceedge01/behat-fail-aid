@@ -308,6 +308,20 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
                             $exception->getFile(),
                             $this->currentScenario
                         );
+                    } else {
+                        $message = $this->staticCaller->call(Output::class, 'getExceptionDetails', [
+                            null,
+                            null,
+                            $scope->getFeature()->getFile(),
+                            $exception->getFile(),
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            $this->currentScenario
+                        ]);
                     }
 
                     $message = $this->addStateDetails($message, $this->getStateDetails(self::$states));
