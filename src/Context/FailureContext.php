@@ -309,6 +309,12 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
                             $this->currentScenario
                         );
                     } else {
+                        $this->staticCaller->call(Output::class, 'setOption', ['url', false]);
+                        $this->staticCaller->call(Output::class, 'setOption', ['status', false]);
+                        $this->staticCaller->call(Output::class, 'setOption', ['screenshot', false]);
+                        $this->staticCaller->call(Output::class, 'setOption', ['driver', false]);
+                        $this->staticCaller->call(Output::class, 'setOption', ['rerun', false]);
+
                         $message = $this->staticCaller->call(Output::class, 'getExceptionDetails', [
                             null,
                             null,
@@ -576,6 +582,17 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
     public static function addState($name, $value)
     {
         self::$states[$name] = $value;
+    }
+
+    /**
+     * @param string $name
+     * @param string $value
+     *
+     * @return string
+     */
+    public static function getState($name, $default = null)
+    {
+        return isset(self::$states[$name]) ? self::$states[$name] : $default;
     }
 
     /**
