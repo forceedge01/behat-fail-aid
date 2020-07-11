@@ -158,7 +158,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
         $this->defaultSession = $defaultSession;
         $this->staticCaller->call(Screenshot::class, 'setOptions', [$screenshot, $siteFilters]);
         $this->staticCaller->call(JSDebug::class, 'setOptions', [$trackJs]);
-        $this->staticCaller->call(Output::class, 'setOptions', [$outputOptions]);
+        // $this->staticCaller->call(Output::class, 'setOptions', [$outputOptions]);
 
         if ($this->outputOptions) {
             foreach ($this->outputOptions as $option => $value) {
@@ -587,6 +587,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
     /**
      * @param string $name
      * @param string $value
+     * @param null|mixed $default
      *
      * @return string
      */
@@ -623,7 +624,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
     }
 
     /**
-     *
      * @return string
      */
     public function getStateDetails(array $states)
