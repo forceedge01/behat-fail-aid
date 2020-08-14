@@ -118,9 +118,9 @@ default:
           - output:
             screenshot: false
   extensions:
-  - FailAid\Extension:
-    output:
-      screenshot: true
+    FailAid\Extension:
+      output:
+        screenshot: true
 ```
 
 screenshot options:
@@ -129,8 +129,8 @@ screenshot options:
 ```gherkin
 #behat.yml
 ...
-- FailAid\Extension:
-    screenshot:
+    FailAid\Extension:
+      screenshot:
         directory: /temp/failures/behat/screenshots/
         mode: default
         autoClean: false
@@ -167,10 +167,10 @@ siteFilters option:
 ```gherkin
 #behat.yml
 ...
-- FailAid\Extension:
-    siteFilters:
-      '/images/': 'http://dev.environment/images/'
-      '/js/': 'http://dev.environment/js/'
+    FailAid\Extension:
+      siteFilters:
+        '/images/': 'http://dev.environment/images/'
+        '/js/': 'http://dev.environment/js/'
 ```
 
 Applied on the content of a html screenshot. Useful when working with relative urls for assets.
@@ -210,13 +210,13 @@ Your original debugging messages will still appear in your console.
 ```gherkin
 #behat.yml
 ...
-- FailAid\Extension:
-    defaultSession: chrome # If you've got multiple sessions registered. If its a standard setup you won't need this.
-    trackJs:
-      errors: true
-      warns: true
-      logs: true
-      trim: 1000
+    FailAid\Extension:
+      defaultSession: chrome # If you've got multiple sessions registered. If its a standard setup you won't need this.
+      trackJs:
+        errors: true
+        warns: true
+        logs: true
+        trim: 1000
 ```
 
 When errors is enabled, any intended console.error calls and js exceptions will be recorded and displayed as part of the failure. Trim is applied on messages to shorten to the specified length.
@@ -227,13 +227,13 @@ debugBarSelectors option:
 ```gherkin
 #behat.yml
 ...
-- FailAid\Extension:
-    debugBarSelectors: #Only CSS selectors allowed.
-      'Status Code': '#debugBar .statusCode'
-      'Error Message': '#debugBar .errorMessage'
-      'Queries Executed': '#debugBar .executedQueries'
-      xhrRequests:
-        callback: MyXhrRequestsInfoExtractor::extract
+    FailAid\Extension:
+      debugBarSelectors: #Only CSS selectors allowed.
+        'Status Code': '#debugBar .statusCode'
+        'Error Message': '#debugBar .errorMessage'
+        'Queries Executed': '#debugBar .executedQueries'
+        xhrRequests:
+          callback: MyXhrRequestsInfoExtractor::extract
 ```
 
 The above will go through each of the selector and find the element. If the element is found, it will display the text contained in the failure output. The debug bar details are gather after taking a screenshot of the page, so its safe to navigate out to another page if needs be. If you have to do this, have a look at the 'Advanced Integration' section for more information.
@@ -245,8 +245,8 @@ When you're using multiple sessions you can configure to use a particular sessio
 
 ```gherkin
 ...
-- FailAid\Extension:
-    defaultSession: mySession
+    FailAid\Extension:
+      defaultSession: mySession
 ...
 ```
 
