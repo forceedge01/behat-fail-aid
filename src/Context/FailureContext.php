@@ -516,7 +516,7 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
                         $debugBarSelectors,
                         $session->getPage()
                     );
-                } catch (Exeption $e) {
+                } catch (Exception $e) {
                     $debugBarDetails = 'Unable to capture debug bar details: ' . $e->getMessage();
                 }
             }
