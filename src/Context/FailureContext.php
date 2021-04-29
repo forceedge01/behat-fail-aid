@@ -120,8 +120,6 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
      */
     public function __construct(array $output = [])
     {
-        date_default_timezone_set('Europe/London');
-
         $this->outputOptions = $output;
         self::$self = $this;
     }
