@@ -114,7 +114,7 @@ default:
         - FailAid\Context\FailureContext
     API:
       contexts:
-        - FailAid\Context\FailureContext
+        - FailAid\Context\FailureContext:
           - output:
             screenshot: false
   extensions:
