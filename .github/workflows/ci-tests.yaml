@@ -1,14 +1,14 @@
 on: [push]
 
 jobs:
-  run_tests_5.6:
+  run_tests_php56:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
       - name: Run tests with php 5.6
         run: docker-compose run --rm tests-php-5.6
-  run_tests_7.1:
+  run_tests_php71:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
