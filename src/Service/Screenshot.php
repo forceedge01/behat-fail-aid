@@ -186,7 +186,7 @@ class Screenshot implements ScreenshotInterface
             return;
         }
 
-        $driver->resizeWindow((int) $size[0], (int) $size[1], 'current');
+        $driver->resizeWindow((int) $size[0], (int) $size[1]);
     }
 
     /**
