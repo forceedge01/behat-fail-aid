@@ -542,19 +542,15 @@ class FailureContext implements MinkAwareContext, FailStateInterface, DebugBarIn
     }
 
 
-    public function setMink(Mink $mink)
+    public function setMink(Mink $mink): void
     {
         $this->mink = $mink;
-
-        return $this;
     }
 
 
-    public function setMinkParameters(array $parameters)
+    public function setMinkParameters(array $parameters): void
     {
         $this->minkParameters = $parameters;
-
-        return $this;
     }
 
     /**

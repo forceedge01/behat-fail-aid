@@ -43,7 +43,7 @@ class Initializer implements ContextInitializer
     /**
      * @param Context $context
      */
-    public function initializeContext(Context $context)
+    public function initializeContext(Context $context): void
     {
         if ($context instanceof FailureContext) {
             $context->setStaticCaller(new StaticCallerService());

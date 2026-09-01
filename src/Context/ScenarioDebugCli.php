@@ -18,7 +18,7 @@ class ScenarioDebugCli implements Controller
      *
      * @param SymfonyCommand $command
      */
-    public function configure(SymfonyCommand $command)
+    public function configure(SymfonyCommand $command): void
     {
         $command->addOption('--scenario-debug', null, InputOption::VALUE_NONE, 'Take screenshots after each step to aid debugging.');
     }
@@ -31,7 +31,7 @@ class ScenarioDebugCli implements Controller
      *
      * @return null|integer
      */
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): ?int
     {
         if ($input->getOption('scenario-debug')) {
             FailureContext::setDebugScenario(true);

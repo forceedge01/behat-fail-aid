@@ -28,7 +28,7 @@ class Extension implements ExtensionInterface
      *
      * Create definition object to handle in the context?
      */
-    public function process(ContainerBuilder $container)
+    public function process(ContainerBuilder $container): void
     {
         return;
     }
@@ -38,7 +38,7 @@ class Extension implements ExtensionInterface
      *
      * @return string
      */
-    public function getConfigKey()
+    public function getConfigKey(): string
     {
         return 'FailAidExtension';
     }
@@ -52,7 +52,7 @@ class Extension implements ExtensionInterface
      * extension point.
      *
      */
-    public function initialize(ExtensionManager $extensionManager)
+    public function initialize(ExtensionManager $extensionManager): void
     {
         return;
     }
@@ -61,7 +61,7 @@ class Extension implements ExtensionInterface
      * Setups configuration for the extension.
      *
      */
-    public function configure(ArrayNodeDefinition $builder)
+    public function configure(ArrayNodeDefinition $builder): void
     {
         $builder
             ->children()
@@ -127,7 +127,7 @@ class Extension implements ExtensionInterface
      * Loads extension services into temporary container.
      *
      */
-    public function load(ContainerBuilder $container, array $config)
+    public function load(ContainerBuilder $container, array $config): void
     {
         $container->setParameter('genesis.failaid.config.screenshot', $this->getScreenshotOptions($config));
 

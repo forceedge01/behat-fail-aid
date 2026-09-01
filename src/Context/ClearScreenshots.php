@@ -18,7 +18,7 @@ class ClearScreenshots implements Controller
      *
      * @param SymfonyCommand $command
      */
-    public function configure(SymfonyCommand $command)
+    public function configure(SymfonyCommand $command): void
     {
         $command->addOption('--clear-screenshots', null, InputOption::VALUE_NONE, 'Remove all screenshots before suite.');
     }
@@ -31,7 +31,7 @@ class ClearScreenshots implements Controller
      *
      * @return null|integer
      */
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): ?int
     {
         if ($input->getOption('clear-screenshots')) {
             FailureContext::setAutoClean(true);
